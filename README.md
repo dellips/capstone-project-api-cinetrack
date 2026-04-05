@@ -10,15 +10,18 @@ Backend ini adalah hasil migrasi dari API Python/FastAPI ke `Node.js + Fastify`.
 npm install
 ```
 
-2. Siapkan environment:
+2. Siapkan environment di file `.env`:
 
 ```bash
-cp .env.example .env
+DATABASE_URL=your_database_url
+CORS_ORIGIN=http://localhost:3000,https://your-frontend-domain.vercel.app
 ```
 
-Atau gunakan `DATABASE_URL` dari folder project utama. Loader config di project ini akan mencoba membaca:
+Loader config di project ini akan mencoba membaca:
 - `node-fastify-api/.env`
 - `../.env`
+
+`CORS_ORIGIN` menerima daftar origin yang dipisahkan koma. Gunakan `*` jika memang ingin membuka akses untuk semua origin.
 
 3. Jalankan server:
 

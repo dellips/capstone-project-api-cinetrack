@@ -5,10 +5,40 @@ import movieRoutes from "./routes/movies.routes.js";
 import statsRoutes from "./routes/stats.routes.js";
 import systemRoutes from "./routes/system.routes.js";
 import { pool } from "./db.js";
+import { config } from "./config.js";
+
+function getCorsOrigin(origin) {
+  if (config.corsOrigins.includes("*")) {
+    return "*";
+  }
+
+  if (!origin) {
+    return null;
+  }
+
+  return config.corsOrigins.includes(origin) ? origin : null;
+}
 
 export function buildApp() {
   const app = Fastify({
     logger: true
+  });
+
+  app.addHook("onRequest", async (request, reply) => {
+    const origin = request.headers.origin;
+    const allowedOrigin = getCorsOrigin(origin);
+
+    if (allowedOrigin) {
+      reply.header("Access-Control-Allow-Origin", allowedOrigin);
+      reply.header("Vary", "Origin");
+      reply.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      reply.header("Access-Control-Allow-Credentials", "true");
+    }
+
+    if (request.method === "OPTIONS") {
+      return reply.status(204).send();
+    }
   });
 
   app.setErrorHandler((error, request, reply) => {
