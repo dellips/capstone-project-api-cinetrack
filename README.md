@@ -26,6 +26,12 @@ Atau gunakan `DATABASE_URL` dari folder project utama. Loader config di project 
 npm run dev
 ```
 
+## Deploy ke Vercel
+
+Project ini sudah mengekspor default handler dari [src/app.js](/C:/Users/user/Documents/KADA%20BATCH%203%202026/node-fastify-api/src/app.js) untuk runtime serverless Vercel.
+
+Jika konfigurasi project Vercel menunjuk ke file app sebagai entry function, gunakan module tersebut sebagai handler.
+
 ## Endpoint
 
 API yang tersedia:

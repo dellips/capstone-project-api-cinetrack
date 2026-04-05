@@ -33,3 +33,18 @@ export function buildApp() {
 
   return app;
 }
+
+const app = buildApp();
+let isReady = false;
+
+async function ensureReady() {
+  if (!isReady) {
+    await app.ready();
+    isReady = true;
+  }
+}
+
+export default async function handler(req, res) {
+  await ensureReady();
+  app.server.emit("request", req, res);
+}
