@@ -388,108 +388,111 @@ export async function getMovieStats({ city = null, cinema_id = null, rating_usia
     cinemaId: cinema_id
   });
 
-  const params = [];
-  const filters = [];
+  const buildMovieFilters = (movieAlias = "m", studioAlias = "st", cinemaAlias = "c") => {
+    const params = [];
+    const filters = [];
 
-  if (city) {
-    params.push(city);
-    filters.push(`c.city = $${params.length}`);
-  }
+    if (city) {
+      params.push(city);
+      filters.push(`${cinemaAlias}.city = $${params.length}`);
+    }
 
-  if (cinema_id) {
-    params.push(cinema_id);
-    filters.push(`st.cinema_id = $${params.length}`);
-  }
+    if (cinema_id) {
+      params.push(cinema_id);
+      filters.push(`${studioAlias}.cinema_id = $${params.length}`);
+    }
 
-  if (rating_usia) {
-    params.push(rating_usia);
-    filters.push(`m.rating_usia = $${params.length}`);
-  }
+    if (rating_usia) {
+      params.push(rating_usia);
+      filters.push(`${movieAlias}.rating_usia = $${params.length}`);
+    }
 
-  const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+    return {
+      params,
+      whereClause: filters.length ? `WHERE ${filters.join(" AND ")}` : ""
+    };
+  };
 
-  const [summaryResult, ratingResult] = await Promise.all([
-    query(
-      `WITH filtered_scope AS (
-          SELECT
-            m.movie_id,
-            m.title,
-            m.genre,
-            m.rating_usia,
-            t.tiket_id,
-            t.final_price
-          FROM movies m
-          JOIN schedules s ON m.movie_id = s.movie_id
-          JOIN studio st ON s.studio_id = st.studio_id
-          JOIN cinema c ON st.cinema_id = c.cinema_id
-          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-          ${whereClause}
-        ),
-        summary_base AS (
-          SELECT
-            COUNT(DISTINCT movie_id)::int AS total_movies_showing,
-            COUNT(tiket_id)::int AS total_tickets_sold
-          FROM filtered_scope
-        ),
-        top_movie AS (
-          SELECT
-            movie_id,
-            title,
-            COUNT(tiket_id)::int AS tickets_sold
-          FROM filtered_scope
-          GROUP BY movie_id, title
-          ORDER BY COUNT(tiket_id) DESC, title ASC
-          LIMIT 1
-        ),
-        top_genre AS (
-          SELECT
-            TRIM(genre_item) AS genre,
-            COUNT(fs.tiket_id)::int AS tickets_sold
-          FROM filtered_scope fs
-          CROSS JOIN LATERAL unnest(string_to_array(COALESCE(fs.genre, ''), ',')) AS genre_item
-          WHERE TRIM(genre_item) <> ''
-          GROUP BY TRIM(genre_item)
-          ORDER BY COUNT(fs.tiket_id) DESC, TRIM(genre_item) ASC
-          LIMIT 1
-        )
-        SELECT
-          sb.total_movies_showing,
-          sb.total_tickets_sold,
-          tm.movie_id AS top_movie_id,
-          tm.title AS top_movie_title,
-          tm.tickets_sold AS top_movie_tickets_sold,
-          tg.genre AS top_genre,
-          tg.tickets_sold AS top_genre_tickets_sold
-        FROM summary_base sb
-        LEFT JOIN top_movie tm ON true
-        LEFT JOIN top_genre tg ON true`,
-      params
-    ),
-    query(
-      `WITH filtered_scope AS (
-          SELECT
-            m.rating_usia,
-            s.schedule_id,
-            t.tiket_id
-          FROM movies m
-          JOIN schedules s ON m.movie_id = s.movie_id
-          JOIN studio st ON s.studio_id = st.studio_id
-          JOIN cinema c ON st.cinema_id = c.cinema_id
-          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-          ${whereClause}
-        )
-        SELECT
-          COALESCE(rating_usia, 'Unknown') AS rating_usia,
-          COUNT(DISTINCT CASE WHEN tiket_id IS NOT NULL THEN tiket_id END)::int AS total_tickets_sold,
-          COUNT(DISTINCT schedule_id)::int AS total_showings
-        FROM filtered_scope
-        GROUP BY COALESCE(rating_usia, 'Unknown')
-        ORDER BY COALESCE(rating_usia, 'Unknown')`,
-      params
-    )
-  ]);
+  const summaryFilters = buildMovieFilters();
+  const summaryResult = await query(
+    `SELECT COUNT(DISTINCT m.movie_id)::int AS total_movies_showing
+     FROM movies m
+     JOIN schedules s ON m.movie_id = s.movie_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     ${summaryFilters.whereClause}`,
+    summaryFilters.params
+  );
+
+  const ticketsFilters = buildMovieFilters();
+  const ticketsResult = await query(
+    `SELECT COUNT(t.tiket_id)::int AS total_tickets_sold
+     FROM tiket t
+     JOIN schedules s ON t.schedule_id = s.schedule_id
+     JOIN movies m ON s.movie_id = m.movie_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     ${ticketsFilters.whereClause}`,
+    ticketsFilters.params
+  );
+
+  const topMovieFilters = buildMovieFilters();
+  const topMovieResult = await query(
+    `SELECT
+        m.movie_id,
+        m.title,
+        COUNT(t.tiket_id)::int AS tickets_sold
+     FROM tiket t
+     JOIN schedules s ON t.schedule_id = s.schedule_id
+     JOIN movies m ON s.movie_id = m.movie_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     ${topMovieFilters.whereClause}
+     GROUP BY m.movie_id, m.title
+     ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
+     LIMIT 1`,
+    topMovieFilters.params
+  );
+
+  const topGenreFilters = buildMovieFilters();
+  const topGenreResult = await query(
+    `SELECT
+        TRIM(genre_item) AS genre,
+        COUNT(t.tiket_id)::int AS tickets_sold
+     FROM tiket t
+     JOIN schedules s ON t.schedule_id = s.schedule_id
+     JOIN movies m ON s.movie_id = m.movie_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
+     ${topGenreFilters.whereClause ? `${topGenreFilters.whereClause} AND TRIM(genre_item) <> ''` : "WHERE TRIM(genre_item) <> ''"}
+     GROUP BY TRIM(genre_item)
+     ORDER BY COUNT(t.tiket_id) DESC, TRIM(genre_item) ASC
+     LIMIT 1`,
+    topGenreFilters.params
+  );
+
+  const ratingFilters = buildMovieFilters();
+  const ratingResult = await query(
+    `SELECT
+        COALESCE(m.rating_usia, 'Unknown') AS rating_usia,
+        COUNT(t.tiket_id)::int AS total_tickets_sold,
+        COUNT(DISTINCT s.schedule_id)::int AS total_showings
+     FROM movies m
+     JOIN schedules s ON m.movie_id = s.movie_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+     ${ratingFilters.whereClause}
+     GROUP BY COALESCE(m.rating_usia, 'Unknown')
+     ORDER BY COALESCE(m.rating_usia, 'Unknown')`,
+    ratingFilters.params
+  );
 
   const summaryRow = summaryResult.rows[0] || {};
+  const ticketsRow = ticketsResult.rows[0] || {};
+  const topMovieRow = topMovieResult.rows[0] || {};
+  const topGenreRow = topGenreResult.rows[0] || {};
 
   return {
     filters: {
@@ -499,18 +502,18 @@ export async function getMovieStats({ city = null, cinema_id = null, rating_usia
     },
     summary: {
       total_movies_showing: Number(summaryRow.total_movies_showing || 0),
-      total_tickets_sold: Number(summaryRow.total_tickets_sold || 0),
-      top_movie: summaryRow.top_movie_title
+      total_tickets_sold: Number(ticketsRow.total_tickets_sold || 0),
+      top_movie: topMovieRow.title
         ? {
-            movie_id: summaryRow.top_movie_id,
-            title: summaryRow.top_movie_title,
-            tickets_sold: Number(summaryRow.top_movie_tickets_sold || 0)
+            movie_id: topMovieRow.movie_id,
+            title: topMovieRow.title,
+            tickets_sold: Number(topMovieRow.tickets_sold || 0)
           }
         : null,
-      top_genre: summaryRow.top_genre
+      top_genre: topGenreRow.genre
         ? {
-            genre: summaryRow.top_genre,
-            tickets_sold: Number(summaryRow.top_genre_tickets_sold || 0)
+            genre: topGenreRow.genre,
+            tickets_sold: Number(topGenreRow.tickets_sold || 0)
           }
         : null
     },
