@@ -130,14 +130,15 @@ export const baseRouteSchemas = {
         type: "array",
         items: {
           type: "object",
-          required: ["movie_id", "title", "genre", "rating_usia", "duration_min", "tickets_sold"],
+          required: ["movie_id", "title", "genre", "rating_usia", "duration_min", "tickets_sold", "revenue"],
           properties: {
             movie_id: { type: "string" },
             title: { type: "string" },
             genre: { type: "array", items: { type: "string" } },
             rating_usia: { type: "string" },
             duration_min: { type: "integer" },
-            tickets_sold: { type: "integer" }
+            tickets_sold: { type: "integer" },
+            revenue: { type: "number" }
           }
         }
       }

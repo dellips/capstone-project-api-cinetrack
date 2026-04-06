@@ -80,7 +80,8 @@ export async function getMoviesBySales({ top10 = false, city = null, cinema_id =
         m.genre,
         m.rating_usia,
         m.duration_min,
-        COUNT(t.tiket_id)::int AS tickets_sold
+        COUNT(t.tiket_id)::int AS tickets_sold,
+        COALESCE(SUM(t.final_price), 0)::float8 AS revenue
      FROM movies m
      JOIN schedules s ON s.movie_id = m.movie_id
      JOIN studio st ON s.studio_id = st.studio_id
@@ -99,6 +100,7 @@ export async function getMoviesBySales({ top10 = false, city = null, cinema_id =
     genre: row.genre ? row.genre.split(",").map((item) => item.trim()) : [],
     rating_usia: row.rating_usia,
     duration_min: Number(row.duration_min || 0),
-    tickets_sold: Number(row.tickets_sold || 0)
+    tickets_sold: Number(row.tickets_sold || 0),
+    revenue: Number(row.revenue || 0)
   }));
 }
