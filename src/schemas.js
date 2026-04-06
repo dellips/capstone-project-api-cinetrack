@@ -145,6 +145,38 @@ export const baseRouteSchemas = {
   }
 };
 
+export const authRouteSchemas = {
+  login: {
+    body: {
+      type: "object",
+      additionalProperties: false,
+      required: ["email", "password"],
+      properties: {
+        email: { type: "string", format: "email" },
+        password: { type: "string", minLength: 1 }
+      }
+    },
+    response: {
+      200: {
+        type: "object",
+        required: ["message", "token", "user"],
+        properties: {
+          message: { type: "string" },
+          token: { type: "string" },
+          user: {
+            type: "object",
+            required: ["email", "role"],
+            properties: {
+              email: { type: "string" },
+              role: { type: "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
 export const cinemaRouteSchemas = {
   cinemas: {
     querystring: {

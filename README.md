@@ -39,6 +39,8 @@ Jika konfigurasi project Vercel menunjuk ke file app sebagai entry function, gun
 
 API yang tersedia:
 - `GET /`
+- `POST /auth/login`
+  - Body: `email`, `password`
 - `GET /movies`
 - `GET /studios`
 - `GET /schedules`
@@ -60,3 +62,9 @@ API yang tersedia:
 - `GET /stats/movie`
   - Optional query: `city`, `cinema_id`, `rating_usia`
 - `GET /system/health`
+
+## Admin Dashboard Login
+
+Kredensial admin statis untuk dashboard:
+- `email: admin@gmail.com`
+- `password: admin123`

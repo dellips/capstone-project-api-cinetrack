@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import authRoutes from "./routes/auth.routes.js";
 import baseRoutes from "./routes/base.routes.js";
 import cinemaRoutes from "./routes/cinemas.routes.js";
 import movieRoutes from "./routes/movies.routes.js";
@@ -56,6 +57,7 @@ export function buildApp() {
   });
 
   app.register(baseRoutes);
+  app.register(authRoutes);
   app.register(cinemaRoutes);
   app.register(movieRoutes);
   app.register(statsRoutes);
