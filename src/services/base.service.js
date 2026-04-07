@@ -3,6 +3,8 @@ import { resolveOptionalDateRange } from "../utils/date.js";
 import { createHttpError } from "../utils/http-error.js";
 import { buildPaginationMeta, resolvePagination } from "../utils/pagination.js";
 import { validateFilters } from "../utils/validation.js";
+import { withCache } from "../utils/cache.js";
+import { config } from "../config.js";
 
 // Mengambil seluruh master film dan mengubah genre menjadi array agar mudah dipakai frontend.
 export async function getAllMovies({
@@ -376,30 +378,41 @@ export async function getMoviesBySales({
     cinemaId: cinema_id
   });
 
-  const dateRange = resolveOptionalDateRange(start_date, end_date);
-  const params = [];
-  const filters = [];
+  return withCache(
+    "movie-rankings",
+    {
+      top10: String(top10),
+      city,
+      cinema_id,
+      start_date,
+      end_date
+    },
+    config.cacheTtlSeconds,
+    async () => {
+      const dateRange = resolveOptionalDateRange(start_date, end_date);
+      const params = [];
+      const filters = [];
 
-  if (city) {
-    params.push(city);
-    filters.push(`c.city = $${params.length}`);
-  }
+      if (city) {
+        params.push(city);
+        filters.push(`c.city = $${params.length}`);
+      }
 
-  if (cinema_id) {
-    params.push(cinema_id);
-    filters.push(`st.cinema_id = $${params.length}`);
-  }
+      if (cinema_id) {
+        params.push(cinema_id);
+        filters.push(`st.cinema_id = $${params.length}`);
+      }
 
-  if (dateRange) {
-    params.push(dateRange.startDate.toISOString(), dateRange.endDate.toISOString());
-    filters.push(`t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`);
-  }
+      if (dateRange) {
+        params.push(dateRange.startDate.toISOString(), dateRange.endDate.toISOString());
+        filters.push(`t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`);
+      }
 
-  const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-  const limitClause = String(top10) === "true" || top10 === true ? "LIMIT 10" : "";
+      const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+      const limitClause = String(top10) === "true" || top10 === true ? "LIMIT 10" : "";
 
-  const result = await query(
-    `SELECT
+      const result = await query(
+        `SELECT
         m.movie_id,
         m.title,
         m.genre,
@@ -416,24 +429,31 @@ export async function getMoviesBySales({
      GROUP BY m.movie_id, m.title, m.genre, m.rating_usia, m.duration_min
      ORDER BY COUNT(t.tiket_id) DESC
      ${limitClause}`,
-    params
-  );
+        params
+      );
 
-  return result.rows.map((row) => ({
-    movie_id: row.movie_id,
-    title: row.title || "Unknown",
-    genre: row.genre ? row.genre.split(",").map((item) => item.trim()) : [],
-    rating_usia: row.rating_usia,
-    duration_min: Number(row.duration_min || 0),
-    tickets_sold: Number(row.tickets_sold || 0),
-    revenue: Number(row.revenue || 0)
-  }));
+      return result.rows.map((row) => ({
+        movie_id: row.movie_id,
+        title: row.title || "Unknown",
+        genre: row.genre ? row.genre.split(",").map((item) => item.trim()) : [],
+        rating_usia: row.rating_usia,
+        duration_min: Number(row.duration_min || 0),
+        tickets_sold: Number(row.tickets_sold || 0),
+        revenue: Number(row.revenue || 0)
+      }));
+    }
+  );
 }
 
 // Mengambil detail studio lengkap dengan ringkasan jadwal dan tiket yang terjual.
 export async function getStudioDetail(studioId) {
-  const result = await query(
-    `SELECT
+  return withCache(
+    "studio-detail",
+    { studioId },
+    config.cacheTtlSeconds,
+    async () => {
+      const result = await query(
+        `SELECT
         st.studio_id,
         st.cinema_id,
         st.studio_name,
@@ -446,30 +466,37 @@ export async function getStudioDetail(studioId) {
      LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
      WHERE st.studio_id = $1
      GROUP BY st.studio_id, st.cinema_id, st.studio_name, st.total_capacity, st.screen_type`,
-    [studioId]
+        [studioId]
+      );
+
+      if (result.rowCount === 0) {
+        throw createHttpError(404, "Studio not found", "STUDIO_NOT_FOUND");
+      }
+
+      const row = result.rows[0];
+
+      return {
+        studio_id: row.studio_id,
+        cinema_id: row.cinema_id,
+        studio_name: row.studio_name,
+        total_capacity: Number(row.total_capacity || 0),
+        screen_type: row.screen_type,
+        total_schedules: Number(row.total_schedules || 0),
+        total_tickets: Number(row.total_tickets || 0)
+      };
+    }
   );
-
-  if (result.rowCount === 0) {
-    throw createHttpError(404, "Studio not found", "STUDIO_NOT_FOUND");
-  }
-
-  const row = result.rows[0];
-
-  return {
-    studio_id: row.studio_id,
-    cinema_id: row.cinema_id,
-    studio_name: row.studio_name,
-    total_capacity: Number(row.total_capacity || 0),
-    screen_type: row.screen_type,
-    total_schedules: Number(row.total_schedules || 0),
-    total_tickets: Number(row.total_tickets || 0)
-  };
 }
 
 // Mengambil detail jadwal lengkap beserta ringkasan penjualan untuk satu schedule.
 export async function getScheduleDetail(scheduleId) {
-  const result = await query(
-    `SELECT
+  return withCache(
+    "schedule-detail",
+    { scheduleId },
+    config.cacheTtlSeconds,
+    async () => {
+      const result = await query(
+        `SELECT
         s.schedule_id,
         s.movie_id,
         s.studio_id,
@@ -493,33 +520,40 @@ export async function getScheduleDetail(scheduleId) {
        s.start_time,
        s.price,
        s.status`,
-    [scheduleId]
+        [scheduleId]
+      );
+
+      if (result.rowCount === 0) {
+        throw createHttpError(404, "Schedule not found", "SCHEDULE_NOT_FOUND");
+      }
+
+      const row = result.rows[0];
+
+      return {
+        schedule_id: row.schedule_id,
+        movie_id: row.movie_id,
+        studio_id: row.studio_id,
+        cinema_id: row.cinema_id,
+        show_date: row.show_date,
+        start_time: row.start_time,
+        price: Number(row.price || 0),
+        status: row.status,
+        tickets_sold: Number(row.tickets_sold || 0),
+        revenue: Number(row.revenue || 0)
+      };
+    }
   );
-
-  if (result.rowCount === 0) {
-    throw createHttpError(404, "Schedule not found", "SCHEDULE_NOT_FOUND");
-  }
-
-  const row = result.rows[0];
-
-  return {
-    schedule_id: row.schedule_id,
-    movie_id: row.movie_id,
-    studio_id: row.studio_id,
-    cinema_id: row.cinema_id,
-    show_date: row.show_date,
-    start_time: row.start_time,
-    price: Number(row.price || 0),
-    status: row.status,
-    tickets_sold: Number(row.tickets_sold || 0),
-    revenue: Number(row.revenue || 0)
-  };
 }
 
 // Mengambil detail tiket lengkap untuk kebutuhan sales drill-down di frontend.
 export async function getTiketDetail(tiketId) {
-  const result = await query(
-    `SELECT
+  return withCache(
+    "tiket-detail",
+    { tiketId },
+    config.cacheTtlSeconds,
+    async () => {
+      const result = await query(
+        `SELECT
         t.tiket_id,
         t.schedule_id,
         t.seat_category,
@@ -533,24 +567,26 @@ export async function getTiketDetail(tiketId) {
      JOIN schedules s ON t.schedule_id = s.schedule_id
      JOIN studio st ON s.studio_id = st.studio_id
      WHERE t.tiket_id = $1`,
-    [tiketId]
+        [tiketId]
+      );
+
+      if (result.rowCount === 0) {
+        throw createHttpError(404, "Tiket not found", "TIKET_NOT_FOUND");
+      }
+
+      const row = result.rows[0];
+
+      return {
+        tiket_id: row.tiket_id,
+        schedule_id: row.schedule_id,
+        movie_id: row.movie_id,
+        studio_id: row.studio_id,
+        cinema_id: row.cinema_id,
+        seat_category: row.seat_category,
+        final_price: Number(row.final_price || 0),
+        trans_time: row.trans_time,
+        payment_type: row.payment_type
+      };
+    }
   );
-
-  if (result.rowCount === 0) {
-    throw createHttpError(404, "Tiket not found", "TIKET_NOT_FOUND");
-  }
-
-  const row = result.rows[0];
-
-  return {
-    tiket_id: row.tiket_id,
-    schedule_id: row.schedule_id,
-    movie_id: row.movie_id,
-    studio_id: row.studio_id,
-    cinema_id: row.cinema_id,
-    seat_category: row.seat_category,
-    final_price: Number(row.final_price || 0),
-    trans_time: row.trans_time,
-    payment_type: row.payment_type
-  };
 }

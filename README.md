@@ -14,6 +14,10 @@ npm install
 
 ```bash
 DATABASE_URL=your_database_url
+REDIS_URL=redis://default:password@host:port
+CACHE_ENABLED=true
+CACHE_TTL_SECONDS=120
+REDIS_CONNECT_TIMEOUT_MS=5000
 CORS_ORIGIN=http://localhost:3000,https://your-frontend-domain.vercel.app
 PORT=8000
 HOST=0.0.0.0
@@ -25,6 +29,10 @@ Loader config akan mencoba membaca:
 - `../.env`
 
 `CORS_ORIGIN` menerima daftar origin yang dipisahkan koma. Gunakan `*` bila memang ingin membuka akses ke semua origin.
+`REDIS_URL` dipakai untuk cache Redis. Jika kosong, API tetap berjalan tanpa cache.
+`CACHE_ENABLED=false` bisa dipakai untuk mematikan cache tanpa menghapus `REDIS_URL`.
+`CACHE_TTL_SECONDS` menentukan TTL cache default dalam detik.
+`REDIS_CONNECT_TIMEOUT_MS` membatasi waktu tunggu koneksi Redis.
 
 3. Jalankan server:
 

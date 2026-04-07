@@ -13,6 +13,10 @@ export const config = {
   port: Number(process.env.PORT || 8000),
   databaseUrl: process.env.DATABASE_URL || "postgresql://postgres:ehjuzXxMsegHaLjXJTuAcBWXHlDNdDCt@gondola.proxy.rlwy.net:19300/railway",
   authSecret: process.env.AUTH_SECRET || "cinetrack-dev-secret",
+  redisUrl: process.env.REDIS_URL || "redis://default:BF9lvh8RrSiJL9oOtj0HFwJ5c5ghPpSG@redis-10460.crce302.ap-seast-1-3.ec2.cloud.redislabs.com:10460",
+  cacheEnabled: (process.env.CACHE_ENABLED || "true") !== "false",
+  cacheTtlSeconds: Number(process.env.CACHE_TTL_SECONDS || 120),
+  redisConnectTimeoutMs: Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 5000),
   corsOrigins: (process.env.CORS_ORIGIN || "*")
     .split(",")
     .map((value) => value.trim())

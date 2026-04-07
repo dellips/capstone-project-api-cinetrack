@@ -2,6 +2,8 @@ import { query } from "../db.js";
 import { resolveDateRange, formatDateOnly, resolveOptionalDateRange } from "../utils/date.js";
 import { validateFilters } from "../utils/validation.js";
 import { createHttpError } from "../utils/http-error.js";
+import { withCache } from "../utils/cache.js";
+import { config } from "../config.js";
 
 // Menyusun filter SQL statistik agar query tetap ringkas dan konsisten.
 function buildStatsFilters({ city, cinemaId, studioId }, startIndex = 3) {
@@ -53,18 +55,23 @@ export async function getSummary({
     studioId: studio_id
   });
 
-  const runQuery = async (start, end) => {
-    const { filters, values } = buildStatsFilters({
-      city,
-      cinemaId: cinema_id,
-      studioId: studio_id
-    });
+  return withCache(
+    "stats-summary",
+    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare) },
+    config.cacheTtlSeconds,
+    async () => {
+      const runQuery = async (start, end) => {
+        const { filters, values } = buildStatsFilters({
+          city,
+          cinemaId: cinema_id,
+          studioId: studio_id
+        });
 
-    const extraFilterSql = filters.length ? ` AND ${filters.join(" AND ")}` : "";
-    const params = [start, end, ...values];
+        const extraFilterSql = filters.length ? ` AND ${filters.join(" AND ")}` : "";
+        const params = [start, end, ...values];
 
-    const result = await query(
-      `WITH schedule_stats AS (
+        const result = await query(
+          `WITH schedule_stats AS (
           SELECT
             s.schedule_id,
             st.total_capacity,
@@ -103,60 +110,62 @@ export async function getSummary({
           oa.total_capacity
         FROM ticket_agg ta
         CROSS JOIN occupancy_agg oa`,
-      params
-    );
+          params
+        );
 
-    const row = result.rows[0] || {};
+        const row = result.rows[0] || {};
 
-    return {
-      total_tickets: Number(row.total_tickets || 0),
-      revenue: Number(row.revenue || 0),
-      occupancy:
-        Number(row.total_capacity || 0) > 0
-          ? Number(
-              ((Number(row.total_tickets_for_occupancy || 0) * 100) / Number(row.total_capacity)).toFixed(2)
-            )
-          : 0,
-      total_transactions: Number(row.total_transactions || 0),
-      cinema_aktif: Number(row.cinema_aktif || 0)
-    };
-  };
+        return {
+          total_tickets: Number(row.total_tickets || 0),
+          revenue: Number(row.revenue || 0),
+          occupancy:
+            Number(row.total_capacity || 0) > 0
+              ? Number(
+                  ((Number(row.total_tickets_for_occupancy || 0) * 100) / Number(row.total_capacity)).toFixed(2)
+                )
+              : 0,
+          total_transactions: Number(row.total_transactions || 0),
+          cinema_aktif: Number(row.cinema_aktif || 0)
+        };
+      };
 
-  const current = await runQuery(startDate, endDate);
-  const totalCinemaResult = await query("SELECT COUNT(*)::int AS total FROM cinema");
-  current.cinema_tersedia = Number(totalCinemaResult.rows[0]?.total || 0);
+      const current = await runQuery(startDate, endDate);
+      const totalCinemaResult = await query("SELECT COUNT(*)::int AS total FROM cinema");
+      current.cinema_tersedia = Number(totalCinemaResult.rows[0]?.total || 0);
 
-  let growth = {};
+      let growth = {};
 
-  if (String(compare) === "true" || compare === true) {
-    const diff = endDate.getTime() - startDate.getTime();
-    const previousStart = new Date(startDate.getTime() - diff);
-    const previousEnd = new Date(startDate);
-    const previous = await runQuery(previousStart, previousEnd);
+      if (String(compare) === "true" || compare === true) {
+        const diff = endDate.getTime() - startDate.getTime();
+        const previousStart = new Date(startDate.getTime() - diff);
+        const previousEnd = new Date(startDate);
+        const previous = await runQuery(previousStart, previousEnd);
 
-    growth = {
-      tickets: percentageGrowth(current.total_tickets, previous.total_tickets),
-      revenue: percentageGrowth(current.revenue, previous.revenue),
-      occupancy: percentageGrowth(current.occupancy, previous.occupancy)
-    };
-  }
+        growth = {
+          tickets: percentageGrowth(current.total_tickets, previous.total_tickets),
+          revenue: percentageGrowth(current.revenue, previous.revenue),
+          occupancy: percentageGrowth(current.occupancy, previous.occupancy)
+        };
+      }
 
-  return {
-    data: {
-      ...current,
-      growth
-    },
-    meta: {
-      period: `${formatDateOnly(startDate)} to ${formatDateOnly(endDate)}`,
-      filters: {
-        city,
-        cinema_id,
-        studio_id
-      },
-      scope: city || cinema_id || studio_id ? "filtered" : "global",
-      compare: String(compare) === "true" || compare === true
+      return {
+        data: {
+          ...current,
+          growth
+        },
+        meta: {
+          period: `${formatDateOnly(startDate)} to ${formatDateOnly(endDate)}`,
+          filters: {
+            city,
+            cinema_id,
+            studio_id
+          },
+          scope: city || cinema_id || studio_id ? "filtered" : "global",
+          compare: String(compare) === "true" || compare === true
+        }
+      };
     }
-  };
+  );
 }
 
 // Mengelompokkan tren tiket dan revenue berdasarkan jam atau tanggal untuk chart frontend.
@@ -213,12 +222,17 @@ export async function getTrends({
     throw createHttpError(400, "Invalid Group By");
   }
 
-  const runTrendQuery = async (rangeStart, rangeEnd) => {
-    const params = [rangeStart, rangeEnd];
-    const filters = buildTrendFilters(params);
+  return withCache(
+    "stats-trends",
+    { start_date, end_date, group_by, city, cinema_id, movie_id, studio_id },
+    config.cacheTtlSeconds,
+    async () => {
+      const runTrendQuery = async (rangeStart, rangeEnd) => {
+        const params = [rangeStart, rangeEnd];
+        const filters = buildTrendFilters(params);
 
-    const result = await query(
-      `SELECT
+        const result = await query(
+          `SELECT
           ${timeExpression} AS time_group,
           COUNT(t.tiket_id)::int AS tickets_sold,
           COALESCE(SUM(t.final_price), 0)::float8 AS revenue
@@ -230,53 +244,55 @@ export async function getTrends({
        ${filters.length ? `AND ${filters.join(" AND ")}` : ""}
        GROUP BY time_group
        ORDER BY time_group`,
-      params
-    );
+          params
+        );
 
-    return result.rows.map((row) => ({
-      time_group: row.time_group,
-      tickets_sold: Number(row.tickets_sold || 0),
-      revenue: Number(row.revenue || 0)
-    }));
-  };
+        return result.rows.map((row) => ({
+          time_group: row.time_group,
+          tickets_sold: Number(row.tickets_sold || 0),
+          revenue: Number(row.revenue || 0)
+        }));
+      };
 
-  const breakdown = await runTrendQuery(startDate, endDate);
-  const currentTotals = breakdown.reduce(
-    (accumulator, item) => ({
-      total_tickets: accumulator.total_tickets + item.tickets_sold,
-      revenue: accumulator.revenue + item.revenue
-    }),
-    { total_tickets: 0, revenue: 0 }
+      const breakdown = await runTrendQuery(startDate, endDate);
+      const currentTotals = breakdown.reduce(
+        (accumulator, item) => ({
+          total_tickets: accumulator.total_tickets + item.tickets_sold,
+          revenue: accumulator.revenue + item.revenue
+        }),
+        { total_tickets: 0, revenue: 0 }
+      );
+
+      const diff = endDate.getTime() - startDate.getTime();
+      const previousStart = new Date(startDate.getTime() - diff);
+      const previousEnd = new Date(startDate);
+      const previousBreakdown = await runTrendQuery(previousStart, previousEnd);
+      const previousTotals = previousBreakdown.reduce(
+        (accumulator, item) => ({
+          total_tickets: accumulator.total_tickets + item.tickets_sold,
+          revenue: accumulator.revenue + item.revenue
+        }),
+        { total_tickets: 0, revenue: 0 }
+      );
+
+      return {
+        summary: {
+          group_by,
+          total_tickets: currentTotals.total_tickets,
+          revenue: Number(currentTotals.revenue.toFixed(2)),
+          growth: {
+            tickets: percentageGrowth(currentTotals.total_tickets, previousTotals.total_tickets),
+            revenue: percentageGrowth(currentTotals.revenue, previousTotals.revenue)
+          }
+        },
+        breakdown: breakdown.map((item) => ({
+          time_group: item.time_group,
+          tickets_sold: item.tickets_sold,
+          revenue: Number(item.revenue.toFixed(2))
+        }))
+      };
+    }
   );
-
-  const diff = endDate.getTime() - startDate.getTime();
-  const previousStart = new Date(startDate.getTime() - diff);
-  const previousEnd = new Date(startDate);
-  const previousBreakdown = await runTrendQuery(previousStart, previousEnd);
-  const previousTotals = previousBreakdown.reduce(
-    (accumulator, item) => ({
-      total_tickets: accumulator.total_tickets + item.tickets_sold,
-      revenue: accumulator.revenue + item.revenue
-    }),
-    { total_tickets: 0, revenue: 0 }
-  );
-
-  return {
-    summary: {
-      group_by,
-      total_tickets: currentTotals.total_tickets,
-      revenue: Number(currentTotals.revenue.toFixed(2)),
-      growth: {
-        tickets: percentageGrowth(currentTotals.total_tickets, previousTotals.total_tickets),
-        revenue: percentageGrowth(currentTotals.revenue, previousTotals.revenue)
-      }
-    },
-    breakdown: breakdown.map((item) => ({
-      time_group: item.time_group,
-      tickets_sold: item.tickets_sold,
-      revenue: Number(item.revenue.toFixed(2))
-    }))
-  };
 }
 
 // Menghitung okupansi kursi per grup waktu agar frontend bisa membuat chart kapasitas.
@@ -324,8 +340,13 @@ export async function getOccupancy({
       ? "TO_CHAR(CAST(s.show_date AS DATE) + CAST(s.start_time AS TIME), 'YYYY-MM-DD HH24:00')"
       : "CAST(s.show_date AS DATE)";
 
-  const result = await query(
-    `WITH per_schedule AS (
+  return withCache(
+    "stats-occupancy",
+    { start_date, end_date, group_by, cinema_id, studio_id, movie_id, city },
+    config.cacheTtlSeconds,
+    async () => {
+      const result = await query(
+        `WITH per_schedule AS (
         SELECT
           s.schedule_id,
           ${groupExpression} AS time_group,
@@ -357,36 +378,38 @@ export async function getOccupancy({
         END AS occupancy
       FROM grouped_occupancy
       ORDER BY time_group`,
-    params
+        params
+      );
+
+      const breakdown = result.rows.map((row) => ({
+        time_group: row.time_group,
+        total_tickets: Number(row.total_tickets || 0),
+        total_capacity: Number(row.total_capacity || 0),
+        occupancy: Number((Number(row.occupancy || 0) * 100).toFixed(2))
+      }));
+
+      const totals = breakdown.reduce(
+        (accumulator, item) => ({
+          total_tickets: accumulator.total_tickets + item.total_tickets,
+          total_capacity: accumulator.total_capacity + item.total_capacity
+        }),
+        { total_tickets: 0, total_capacity: 0 }
+      );
+
+      return {
+        summary: {
+          group_by,
+          total_tickets: totals.total_tickets,
+          total_capacity: totals.total_capacity,
+          occupancy:
+            totals.total_capacity > 0
+              ? Number((((totals.total_tickets * 100) / totals.total_capacity)).toFixed(2))
+              : 0
+        },
+        breakdown
+      };
+    }
   );
-
-  const breakdown = result.rows.map((row) => ({
-    time_group: row.time_group,
-    total_tickets: Number(row.total_tickets || 0),
-    total_capacity: Number(row.total_capacity || 0),
-    occupancy: Number((Number(row.occupancy || 0) * 100).toFixed(2))
-  }));
-
-  const totals = breakdown.reduce(
-    (accumulator, item) => ({
-      total_tickets: accumulator.total_tickets + item.total_tickets,
-      total_capacity: accumulator.total_capacity + item.total_capacity
-    }),
-    { total_tickets: 0, total_capacity: 0 }
-  );
-
-  return {
-    summary: {
-      group_by,
-      total_tickets: totals.total_tickets,
-      total_capacity: totals.total_capacity,
-      occupancy:
-        totals.total_capacity > 0
-          ? Number((((totals.total_tickets * 100) / totals.total_capacity)).toFixed(2))
-          : 0
-    },
-    breakdown
-  };
 }
 
 // Menggabungkan ringkasan performa film dan breakdown rating usia berdasarkan filter aktif.
@@ -402,63 +425,68 @@ export async function getMovieStats({
     cinemaId: cinema_id
   });
 
-  const dateRange = resolveOptionalDateRange(start_date, end_date);
-  const buildMovieFilters = (movieAlias = "m", studioAlias = "st", cinemaAlias = "c") => {
-    const params = [];
-    const filters = [];
+  return withCache(
+    "stats-movie",
+    { city, cinema_id, rating_usia, start_date, end_date },
+    config.cacheTtlSeconds,
+    async () => {
+      const dateRange = resolveOptionalDateRange(start_date, end_date);
+      const buildMovieFilters = (movieAlias = "m", studioAlias = "st", cinemaAlias = "c") => {
+        const params = [];
+        const filters = [];
 
-    if (city) {
-      params.push(city);
-      filters.push(`${cinemaAlias}.city = $${params.length}`);
-    }
+        if (city) {
+          params.push(city);
+          filters.push(`${cinemaAlias}.city = $${params.length}`);
+        }
 
-    if (cinema_id) {
-      params.push(cinema_id);
-      filters.push(`${studioAlias}.cinema_id = $${params.length}`);
-    }
+        if (cinema_id) {
+          params.push(cinema_id);
+          filters.push(`${studioAlias}.cinema_id = $${params.length}`);
+        }
 
-    if (rating_usia) {
-      params.push(rating_usia);
-      filters.push(`${movieAlias}.rating_usia = $${params.length}`);
-    }
+        if (rating_usia) {
+          params.push(rating_usia);
+          filters.push(`${movieAlias}.rating_usia = $${params.length}`);
+        }
 
-    if (dateRange) {
-      params.push(start_date, end_date);
-      filters.push(`CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`);
-    }
+        if (dateRange) {
+          params.push(start_date, end_date);
+          filters.push(`CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`);
+        }
 
-    return {
-      params,
-      whereClause: filters.length ? `WHERE ${filters.join(" AND ")}` : ""
-    };
-  };
+        return {
+          params,
+          whereClause: filters.length ? `WHERE ${filters.join(" AND ")}` : ""
+        };
+      };
 
-  const summaryFilters = buildMovieFilters();
-  const summaryResult = await query(
-    `SELECT COUNT(DISTINCT m.movie_id)::int AS total_movies_showing
+      const summaryFilters = buildMovieFilters();
+      const summaryResult = await query(
+        `SELECT COUNT(DISTINCT m.movie_id)::int AS total_movies_showing
      FROM movies m
      JOIN schedules s ON m.movie_id = s.movie_id
      JOIN studio st ON s.studio_id = st.studio_id
      JOIN cinema c ON st.cinema_id = c.cinema_id
      ${summaryFilters.whereClause}`,
-    summaryFilters.params
-  );
+        summaryFilters.params
+      );
 
-  const ticketsFilters = buildMovieFilters();
-  const ticketsResult = await query(
-    `SELECT COUNT(t.tiket_id)::int AS total_tickets_sold
+      const ticketsFilters = buildMovieFilters();
+      const ticketsResult = await query(
+        `SELECT COUNT(t.tiket_id)::int AS total_tickets_sold
      FROM tiket t
      JOIN schedules s ON t.schedule_id = s.schedule_id
      JOIN movies m ON s.movie_id = m.movie_id
      JOIN studio st ON s.studio_id = st.studio_id
      JOIN cinema c ON st.cinema_id = c.cinema_id
      ${ticketsFilters.whereClause}`,
-    ticketsFilters.params
-  );
+        ticketsFilters.params
+      );
 
-  const topMovieFilters = buildMovieFilters();
-  const topMovieResult = await query(
-    `SELECT
+      const topMovieFilters = buildMovieFilters();
+      const topMovieResult = await query(
+        `SELECT
         m.movie_id,
         m.title,
         COUNT(t.tiket_id)::int AS tickets_sold
@@ -471,12 +499,12 @@ export async function getMovieStats({
      GROUP BY m.movie_id, m.title
      ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
      LIMIT 1`,
-    topMovieFilters.params
-  );
+        topMovieFilters.params
+      );
 
-  const topGenreFilters = buildMovieFilters();
-  const topGenreResult = await query(
-    `SELECT
+      const topGenreFilters = buildMovieFilters();
+      const topGenreResult = await query(
+        `SELECT
         TRIM(genre_item) AS genre,
         COUNT(t.tiket_id)::int AS tickets_sold
      FROM tiket t
@@ -489,12 +517,12 @@ export async function getMovieStats({
      GROUP BY TRIM(genre_item)
      ORDER BY COUNT(t.tiket_id) DESC, TRIM(genre_item) ASC
      LIMIT 1`,
-    topGenreFilters.params
-  );
+        topGenreFilters.params
+      );
 
-  const ratingFilters = buildMovieFilters();
-  const ratingResult = await query(
-    `SELECT
+      const ratingFilters = buildMovieFilters();
+      const ratingResult = await query(
+        `SELECT
         COALESCE(m.rating_usia, 'Unknown') AS rating_usia,
         COUNT(t.tiket_id)::int AS total_tickets_sold,
         COUNT(DISTINCT s.schedule_id)::int AS total_showings
@@ -506,36 +534,38 @@ export async function getMovieStats({
      ${ratingFilters.whereClause}
      GROUP BY COALESCE(m.rating_usia, 'Unknown')
      ORDER BY COALESCE(m.rating_usia, 'Unknown')`,
-    ratingFilters.params
+        ratingFilters.params
+      );
+
+      const summaryRow = summaryResult.rows[0] || {};
+      const ticketsRow = ticketsResult.rows[0] || {};
+      const topMovieRow = topMovieResult.rows[0] || {};
+      const topGenreRow = topGenreResult.rows[0] || {};
+
+      return {
+        summary: {
+          total_movies_showing: Number(summaryRow.total_movies_showing || 0),
+          total_tickets_sold: Number(ticketsRow.total_tickets_sold || 0),
+          top_movie: topMovieRow.title
+            ? {
+                movie_id: topMovieRow.movie_id,
+                title: topMovieRow.title,
+                tickets_sold: Number(topMovieRow.tickets_sold || 0)
+              }
+            : null,
+          top_genre: topGenreRow.genre
+            ? {
+                genre: topGenreRow.genre,
+                tickets_sold: Number(topGenreRow.tickets_sold || 0)
+              }
+            : null
+        },
+        breakdown_rating_usia: ratingResult.rows.map((row) => ({
+          rating_usia: row.rating_usia,
+          total_tickets_sold: Number(row.total_tickets_sold || 0),
+          total_showings: Number(row.total_showings || 0)
+        }))
+      };
+    }
   );
-
-  const summaryRow = summaryResult.rows[0] || {};
-  const ticketsRow = ticketsResult.rows[0] || {};
-  const topMovieRow = topMovieResult.rows[0] || {};
-  const topGenreRow = topGenreResult.rows[0] || {};
-
-  return {
-    summary: {
-      total_movies_showing: Number(summaryRow.total_movies_showing || 0),
-      total_tickets_sold: Number(ticketsRow.total_tickets_sold || 0),
-      top_movie: topMovieRow.title
-        ? {
-            movie_id: topMovieRow.movie_id,
-            title: topMovieRow.title,
-            tickets_sold: Number(topMovieRow.tickets_sold || 0)
-          }
-        : null,
-      top_genre: topGenreRow.genre
-        ? {
-            genre: topGenreRow.genre,
-            tickets_sold: Number(topGenreRow.tickets_sold || 0)
-          }
-        : null
-    },
-    breakdown_rating_usia: ratingResult.rows.map((row) => ({
-      rating_usia: row.rating_usia,
-      total_tickets_sold: Number(row.total_tickets_sold || 0),
-      total_showings: Number(row.total_showings || 0)
-    }))
-  };
 }

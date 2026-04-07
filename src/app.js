@@ -11,6 +11,7 @@ import systemRoutes from "./routes/system.routes.js";
 import { pool } from "./db.js";
 import { config } from "./config.js";
 import { errorResponse } from "./utils/response.js";
+import { closeRedisClient } from "./redis.js";
 
 const routePlugins = [
   baseRoutes,
@@ -126,6 +127,7 @@ export function buildApp() {
   });
 
   app.addHook("onClose", async () => {
+    await closeRedisClient();
     await pool.end();
   });
 

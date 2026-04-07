@@ -3,6 +3,8 @@ import { resolveOptionalDateRange } from "../utils/date.js";
 import { createHttpError } from "../utils/http-error.js";
 import { buildPaginationMeta, resolvePagination } from "../utils/pagination.js";
 import { validateFilters } from "../utils/validation.js";
+import { withCache } from "../utils/cache.js";
+import { config } from "../config.js";
 
 // Menyusun filter bioskop agar list, stats, dan performance memakai logika yang sama.
 function buildCinemaFilters({ city = null, cinema_id = null } = {}) {
@@ -202,8 +204,13 @@ export async function getCinemas({ city = null, cinema_id = null, page = 1, limi
 
 // Mengambil detail satu bioskop beserta hitungan studio, jadwal, dan tiket yang terkait.
 export async function getCinemaDetail(cinemaId) {
-  const result = await query(
-    `SELECT
+  return withCache(
+    "cinema-detail",
+    { cinemaId },
+    config.cacheTtlSeconds,
+    async () => {
+      const result = await query(
+        `SELECT
         c.cinema_id,
         c.cinema_name,
         c.city,
@@ -217,69 +224,85 @@ export async function getCinemaDetail(cinemaId) {
      LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
      WHERE c.cinema_id = $1
      GROUP BY c.cinema_id, c.cinema_name, c.city, c.address`,
-    [cinemaId]
+        [cinemaId]
+      );
+
+      if (result.rowCount === 0) {
+        throw createHttpError(404, "Cinema not found", "CINEMA_NOT_FOUND");
+      }
+
+      const row = result.rows[0];
+
+      return {
+        cinema_id: row.cinema_id,
+        cinema_name: row.cinema_name,
+        city: row.city,
+        address: row.address,
+        total_studios: Number(row.total_studios || 0),
+        total_schedules: Number(row.total_schedules || 0),
+        total_tickets: Number(row.total_tickets || 0)
+      };
+    }
   );
-
-  if (result.rowCount === 0) {
-    throw createHttpError(404, "Cinema not found", "CINEMA_NOT_FOUND");
-  }
-
-  const row = result.rows[0];
-
-  return {
-    cinema_id: row.cinema_id,
-    cinema_name: row.cinema_name,
-    city: row.city,
-    address: row.address,
-    total_studios: Number(row.total_studios || 0),
-    total_schedules: Number(row.total_schedules || 0),
-    total_tickets: Number(row.total_tickets || 0)
-  };
 }
 
 // Menghitung performa satu bioskop pada rentang tanggal tertentu untuk halaman drill-down.
 export async function getCinemaPerformance(cinemaId, { start_date = null, end_date = null } = {}) {
-  const rows = await getCinemaBreakdownRows({
-    cinema_id: cinemaId,
-    start_date,
-    end_date
-  });
+  return withCache(
+    "cinema-performance",
+    { cinemaId, start_date, end_date },
+    config.cacheTtlSeconds,
+    async () => {
+      const rows = await getCinemaBreakdownRows({
+        cinema_id: cinemaId,
+        start_date,
+        end_date
+      });
 
-  if (rows.length === 0) {
-    throw createHttpError(404, "Cinema not found", "CINEMA_NOT_FOUND");
-  }
+      if (rows.length === 0) {
+        throw createHttpError(404, "Cinema not found", "CINEMA_NOT_FOUND");
+      }
 
-  const row = rows[0];
+      const row = rows[0];
 
-  return {
-    metrics: row.metrics,
-    top_movie: row.top_movie,
-    top_genre: row.top_genre,
-    active_studios: row.metrics.active_studios
-  };
+      return {
+        metrics: row.metrics,
+        top_movie: row.top_movie,
+        top_genre: row.top_genre,
+        active_studios: row.metrics.active_studios
+      };
+    }
+  );
 }
 
 // Mengembalikan ringkasan agregat per bioskop tanpa metadata master yang terlalu besar.
 export async function getCinemaStats({ city = null, cinema_id = null, start_date = null, end_date = null } = {}) {
-  const rows = await getCinemaBreakdownRows({
-    city,
-    cinema_id,
-    start_date,
-    end_date
-  });
+  return withCache(
+    "stats-cinema",
+    { city, cinema_id, start_date, end_date },
+    config.cacheTtlSeconds,
+    async () => {
+      const rows = await getCinemaBreakdownRows({
+        city,
+        cinema_id,
+        start_date,
+        end_date
+      });
 
-  return {
-    summary: {
-      total_cinemas: rows.length,
-      active_cinemas: rows.filter((item) => item.metrics.total_tickets > 0).length
-    },
-    breakdown: rows.map((row) => ({
-      cinema_id: row.cinema_id,
-      cinema_name: row.cinema_name,
-      city: row.city,
-      metrics: row.metrics,
-      top_movie: row.top_movie,
-      top_genre: row.top_genre
-    }))
-  };
+      return {
+        summary: {
+          total_cinemas: rows.length,
+          active_cinemas: rows.filter((item) => item.metrics.total_tickets > 0).length
+        },
+        breakdown: rows.map((row) => ({
+          cinema_id: row.cinema_id,
+          cinema_name: row.cinema_name,
+          city: row.city,
+          metrics: row.metrics,
+          top_movie: row.top_movie,
+          top_genre: row.top_genre
+        }))
+      };
+    }
+  );
 }
