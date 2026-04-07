@@ -1,9 +1,9 @@
 import { query } from "../db.js";
 import { resolveDateRange, formatDateOnly } from "../utils/date.js";
-import { buildResponse } from "../utils/response.js";
 import { validateFilters } from "../utils/validation.js";
 import { createHttpError } from "../utils/http-error.js";
 
+// Menyusun filter SQL statistik agar query tetap ringkas dan konsisten.
 function buildStatsFilters({ city, cinemaId, studioId }, startIndex = 3) {
   const filters = [];
   const values = [];
@@ -26,6 +26,7 @@ function buildStatsFilters({ city, cinemaId, studioId }, startIndex = 3) {
   return { filters, values };
 }
 
+// Menghitung persen pertumbuhan current vs previous dengan hasil dua desimal.
 function percentageGrowth(current, previous) {
   if (previous === 0) {
     return current > 0 ? 100 : 0;
@@ -34,6 +35,7 @@ function percentageGrowth(current, previous) {
   return Number((((current - previous) / previous) * 100).toFixed(2));
 }
 
+// Menghasilkan KPI utama dashboard beserta metadata periode dan filter yang aktif.
 export async function getSummary({
   start_date,
   end_date,
@@ -139,21 +141,25 @@ export async function getSummary({
     };
   }
 
-  return buildResponse(
-    {
+  return {
+    data: {
+      ...current,
+      growth
+    },
+    meta: {
       period: `${formatDateOnly(startDate)} to ${formatDateOnly(endDate)}`,
       filters: {
         city,
         cinema_id,
         studio_id
       },
-      scope: city || cinema_id || studio_id ? "filtered" : "global"
-    },
-    current,
-    growth
-  );
+      scope: city || cinema_id || studio_id ? "filtered" : "global",
+      compare: String(compare) === "true" || compare === true
+    }
+  };
 }
 
+// Mengelompokkan tren tiket dan revenue berdasarkan jam atau tanggal untuk chart frontend.
 export async function getTrends({
   start_date,
   end_date,
@@ -273,6 +279,7 @@ export async function getTrends({
   };
 }
 
+// Menghitung okupansi kursi per grup waktu agar frontend bisa membuat chart kapasitas.
 export async function getOccupancy({
   start_date,
   end_date,
@@ -382,6 +389,7 @@ export async function getOccupancy({
   };
 }
 
+// Menggabungkan ringkasan performa film dan breakdown rating usia berdasarkan filter aktif.
 export async function getMovieStats({ city = null, cinema_id = null, rating_usia = null }) {
   await validateFilters({
     city,
@@ -495,11 +503,6 @@ export async function getMovieStats({ city = null, cinema_id = null, rating_usia
   const topGenreRow = topGenreResult.rows[0] || {};
 
   return {
-    filters: {
-      city,
-      cinema_id,
-      rating_usia
-    },
     summary: {
       total_movies_showing: Number(summaryRow.total_movies_showing || 0),
       total_tickets_sold: Number(ticketsRow.total_tickets_sold || 0),

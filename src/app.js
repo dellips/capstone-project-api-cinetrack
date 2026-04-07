@@ -7,7 +7,18 @@ import statsRoutes from "./routes/stats.routes.js";
 import systemRoutes from "./routes/system.routes.js";
 import { pool } from "./db.js";
 import { config } from "./config.js";
+import { errorResponse } from "./utils/response.js";
 
+const routePlugins = [
+  baseRoutes,
+  authRoutes,
+  cinemaRoutes,
+  movieRoutes,
+  statsRoutes,
+  systemRoutes
+];
+
+// Memilih origin CORS yang valid dan mengembalikan null bila origin tidak diizinkan.
 function getCorsOrigin(origin) {
   if (config.corsOrigins.includes("*")) {
     return "*";
@@ -20,6 +31,55 @@ function getCorsOrigin(origin) {
   return config.corsOrigins.includes(origin) ? origin : null;
 }
 
+// Menentukan status error yang dipakai response global, termasuk validasi schema Fastify.
+function getStatusCode(error) {
+  if (error.validation) {
+    return 422;
+  }
+
+  return error.statusCode || 500;
+}
+
+// Mengubah status error menjadi kode yang stabil untuk dipakai frontend.
+function getErrorCode(error, statusCode) {
+  if (error.errorCode) {
+    return error.errorCode;
+  }
+
+  const codes = {
+    400: "BAD_REQUEST",
+    401: "UNAUTHORIZED",
+    403: "FORBIDDEN",
+    404: "NOT_FOUND",
+    422: "VALIDATION_ERROR",
+    429: "RATE_LIMITED",
+    500: "INTERNAL_ERROR",
+    503: "SERVICE_UNAVAILABLE"
+  };
+
+  return codes[statusCode] || "INTERNAL_ERROR";
+}
+
+// Merapikan detail validasi schema agar frontend mudah menandai field yang bermasalah.
+function getErrorDetails(error, statusCode) {
+  if (statusCode !== 422 || !error.validation) {
+    return error.details ?? null;
+  }
+
+  return error.validation.map((item) => ({
+    field: item.instancePath.replace(/^\//, "") || item.params?.missingProperty || null,
+    message: item.message || "Invalid value"
+  }));
+}
+
+// Mendaftarkan route yang sama ke prefix tertentu agar kontrak lama dan baru tetap hidup.
+function registerRoutes(app, prefix = "") {
+  for (const plugin of routePlugins) {
+    app.register(plugin, { prefix });
+  }
+}
+
+// Membuat instance Fastify, hook CORS, error handler, dan seluruh route aplikasi.
 export function buildApp() {
   const app = Fastify({
     logger: true
@@ -45,23 +105,26 @@ export function buildApp() {
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
 
-    const statusCode = error.statusCode || 500;
+    const statusCode = getStatusCode(error);
+    const errorCode = getErrorCode(error, statusCode);
+    const details = getErrorDetails(error, statusCode);
+    const message = statusCode === 500
+      ? "Internal Server Error"
+      : error.message || "Request failed";
 
-    reply.status(statusCode).send({
-      message: error.message || "Internal Server Error"
-    });
+    reply.status(statusCode).send(errorResponse(errorCode, message, details));
+  });
+
+  app.setNotFoundHandler((request, reply) => {
+    reply.status(404).send(errorResponse("NOT_FOUND", `Route ${request.method} ${request.url} not found`));
   });
 
   app.addHook("onClose", async () => {
     await pool.end();
   });
 
-  app.register(baseRoutes);
-  app.register(authRoutes);
-  app.register(cinemaRoutes);
-  app.register(movieRoutes);
-  app.register(statsRoutes);
-  app.register(systemRoutes);
+  registerRoutes(app);
+  registerRoutes(app, "/api/v1");
 
   return app;
 }
