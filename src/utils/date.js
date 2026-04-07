@@ -53,3 +53,16 @@ export function resolveDateRange(startDate, endDate, period = "daily") {
 export function formatDateOnly(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
+
+// Mengembalikan range tanggal opsional dan menolak jika hanya salah satu sisi yang dikirim.
+export function resolveOptionalDateRange(startDate, endDate) {
+  if (!startDate && !endDate) {
+    return null;
+  }
+
+  if (!startDate || !endDate) {
+    throw createHttpError(400, "start_date and end_date must be provided together");
+  }
+
+  return resolveDateRange(startDate, endDate, "daily");
+}

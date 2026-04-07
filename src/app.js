@@ -3,6 +3,8 @@ import authRoutes from "./routes/auth.routes.js";
 import baseRoutes from "./routes/base.routes.js";
 import cinemaRoutes from "./routes/cinemas.routes.js";
 import movieRoutes from "./routes/movies.routes.js";
+import notificationRoutes from "./routes/notifications.routes.js";
+import settingsRoutes from "./routes/settings.routes.js";
 import statsRoutes from "./routes/stats.routes.js";
 import systemRoutes from "./routes/system.routes.js";
 import { pool } from "./db.js";
@@ -14,6 +16,8 @@ const routePlugins = [
   authRoutes,
   cinemaRoutes,
   movieRoutes,
+  notificationRoutes,
+  settingsRoutes,
   statsRoutes,
   systemRoutes
 ];

@@ -1,5 +1,5 @@
 import { query } from "../db.js";
-import { resolveDateRange, formatDateOnly } from "../utils/date.js";
+import { resolveDateRange, formatDateOnly, resolveOptionalDateRange } from "../utils/date.js";
 import { validateFilters } from "../utils/validation.js";
 import { createHttpError } from "../utils/http-error.js";
 
@@ -390,12 +390,19 @@ export async function getOccupancy({
 }
 
 // Menggabungkan ringkasan performa film dan breakdown rating usia berdasarkan filter aktif.
-export async function getMovieStats({ city = null, cinema_id = null, rating_usia = null }) {
+export async function getMovieStats({
+  city = null,
+  cinema_id = null,
+  rating_usia = null,
+  start_date = null,
+  end_date = null
+}) {
   await validateFilters({
     city,
     cinemaId: cinema_id
   });
 
+  const dateRange = resolveOptionalDateRange(start_date, end_date);
   const buildMovieFilters = (movieAlias = "m", studioAlias = "st", cinemaAlias = "c") => {
     const params = [];
     const filters = [];
@@ -413,6 +420,11 @@ export async function getMovieStats({ city = null, cinema_id = null, rating_usia
     if (rating_usia) {
       params.push(rating_usia);
       filters.push(`${movieAlias}.rating_usia = $${params.length}`);
+    }
+
+    if (dateRange) {
+      params.push(start_date, end_date);
+      filters.push(`CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`);
     }
 
     return {
