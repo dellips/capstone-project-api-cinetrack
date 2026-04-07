@@ -1,5 +1,7 @@
 import { query } from "../db.js";
+import { resolveOptionalDateRange } from "../utils/date.js";
 import { createHttpError } from "../utils/http-error.js";
+import { validateFilters } from "../utils/validation.js";
 
 // Mengambil detail film, metrik penjualan, dan distribusi kursi untuk halaman detail.
 export async function getMovieDetail(movieId) {
@@ -71,5 +73,107 @@ export async function getMovieDetail(movieId) {
     },
     showing_at: Array.from(cinemas),
     seat_distribution: seatDistribution
+  };
+}
+
+// Menghitung performa film untuk periode tertentu beserta tren penjualan per hari.
+export async function getMoviePerformance(
+  movieId,
+  { city = null, cinema_id = null, start_date = null, end_date = null } = {}
+) {
+  await validateFilters({
+    city,
+    cinemaId: cinema_id
+  });
+
+  await getMovieDetail(movieId);
+  const dateRange = resolveOptionalDateRange(start_date, end_date);
+  const params = [movieId];
+  const filters = ["s.movie_id = $1"];
+
+  if (city) {
+    params.push(city);
+    filters.push(`c.city = $${params.length}`);
+  }
+
+  if (cinema_id) {
+    params.push(cinema_id);
+    filters.push(`st.cinema_id = $${params.length}`);
+  }
+
+  if (dateRange) {
+    params.push(dateRange.startDate.toISOString(), dateRange.endDate.toISOString());
+    filters.push(`t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`);
+  }
+
+  const whereClause = `WHERE ${filters.join(" AND ")}`;
+  const metricsResult = await query(
+    `SELECT
+        COUNT(t.tiket_id)::int AS total_tickets,
+        COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
+        COUNT(DISTINCT st.cinema_id)::int AS showing_at_count
+     FROM schedules s
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+     ${whereClause}`,
+    params
+  );
+
+  const trendResult = await query(
+    `SELECT
+        DATE(t.trans_time::timestamp) AS time_group,
+        COUNT(t.tiket_id)::int AS tickets_sold,
+        COALESCE(SUM(t.final_price), 0)::float8 AS revenue
+     FROM tiket t
+     JOIN schedules s ON t.schedule_id = s.schedule_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     WHERE ${filters.join(" AND ")}
+     GROUP BY DATE(t.trans_time::timestamp)
+     ORDER BY DATE(t.trans_time::timestamp)`,
+    params
+  );
+
+  const distributionResult = await query(
+    `SELECT
+        st.cinema_id,
+        t.seat_category,
+        COUNT(t.tiket_id)::int AS total_tickets
+     FROM tiket t
+     JOIN schedules s ON t.schedule_id = s.schedule_id
+     JOIN studio st ON s.studio_id = st.studio_id
+     JOIN cinema c ON st.cinema_id = c.cinema_id
+     WHERE ${filters.join(" AND ")}
+     GROUP BY st.cinema_id, t.seat_category`,
+    params
+  );
+
+  const metricsRow = metricsResult.rows[0] || {};
+  const seatDistribution = {};
+  const cinemas = new Set();
+
+  for (const row of distributionResult.rows) {
+    cinemas.add(String(row.cinema_id));
+    seatDistribution[row.seat_category] = Number(row.total_tickets || 0);
+  }
+
+  return {
+    metrics: {
+      total_tickets: Number(metricsRow.total_tickets || 0),
+      total_revenue: Number(metricsRow.total_revenue || 0),
+      avg_ticket_price:
+        Number(metricsRow.total_tickets || 0) > 0
+          ? Number((Number(metricsRow.total_revenue || 0) / Number(metricsRow.total_tickets || 0)).toFixed(2))
+          : 0,
+      showing_at_count: Number(metricsRow.showing_at_count || 0)
+    },
+    showing_at: Array.from(cinemas),
+    seat_distribution: seatDistribution,
+    trend: trendResult.rows.map((row) => ({
+      time_group: row.time_group,
+      tickets_sold: Number(row.tickets_sold || 0),
+      revenue: Number(row.revenue || 0)
+    }))
   };
 }

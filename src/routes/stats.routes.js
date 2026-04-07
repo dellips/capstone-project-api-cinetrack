@@ -4,6 +4,7 @@ import {
   getSummary,
   getTrends
 } from "../services/stats.service.js";
+import { getCinemaStats } from "../services/cinemas.service.js";
 import { statsRouteSchemas } from "../schemas.js";
 import { successResponse } from "../utils/response.js";
 
@@ -50,11 +51,24 @@ export default async function statsRoutes(fastify) {
     const filters = {
       city: request.query.city ?? null,
       cinema_id: request.query.cinema_id ?? null,
-      rating_usia: request.query.rating_usia ?? null
+      rating_usia: request.query.rating_usia ?? null,
+      start_date: request.query.start_date ?? null,
+      end_date: request.query.end_date ?? null
     };
 
     return successResponse(await getMovieStats(request.query), {
       filters
     });
   });
+
+  fastify.get("/stats/cinema", { schema: statsRouteSchemas.cinema }, async (request) =>
+    successResponse(await getCinemaStats(request.query), {
+      filters: {
+        city: request.query.city ?? null,
+        cinema_id: request.query.cinema_id ?? null,
+        start_date: request.query.start_date ?? null,
+        end_date: request.query.end_date ?? null
+      }
+    })
+  );
 }
