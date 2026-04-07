@@ -56,8 +56,8 @@ export async function getSummary({
   });
 
   return withCache(
-    "stats-summary",
-    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare) },
+    "stats-summary-v2",
+    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare), occupancy_mode: "avg_studio" },
     config.cacheTtlSeconds,
     async () => {
       const runQuery = async (start, end) => {
@@ -65,15 +65,18 @@ export async function getSummary({
           city,
           cinemaId: cinema_id,
           studioId: studio_id
-        });
+        }, 5);
 
         const extraFilterSql = filters.length ? ` AND ${filters.join(" AND ")}` : "";
-        const params = [start, end, ...values];
+        const scheduleStartDate = formatDateOnly(start);
+        const scheduleEndDate = formatDateOnly(end);
+        const params = [scheduleStartDate, scheduleEndDate, start, end, ...values];
 
         const result = await query(
           `WITH schedule_stats AS (
           SELECT
             s.schedule_id,
+            s.studio_id,
             st.total_capacity,
             COUNT(t.tiket_id) AS tickets
           FROM schedules s
@@ -81,13 +84,27 @@ export async function getSummary({
           LEFT JOIN tiket t ON t.schedule_id = s.schedule_id
           JOIN cinema c ON st.cinema_id = c.cinema_id
           WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)${extraFilterSql}
-          GROUP BY s.schedule_id, st.total_capacity
+          GROUP BY s.schedule_id, s.studio_id, st.total_capacity
+        ),
+        studio_occupancy AS (
+          SELECT
+            studio_id,
+            COALESCE(SUM(tickets), 0)::float8 AS total_tickets_for_occupancy,
+            COALESCE(SUM(total_capacity), 0)::float8 AS total_capacity,
+            CASE
+              WHEN COALESCE(SUM(total_capacity), 0) > 0
+                THEN COALESCE(SUM(tickets), 0)::float8 / COALESCE(SUM(total_capacity), 0)::float8
+              ELSE 0
+            END AS occupancy
+          FROM schedule_stats
+          GROUP BY studio_id
         ),
         occupancy_agg AS (
           SELECT
-            COALESCE(SUM(tickets), 0)::float8 AS total_tickets_for_occupancy,
-            COALESCE(SUM(total_capacity), 0)::float8 AS total_capacity
-          FROM schedule_stats
+            COALESCE(SUM(total_tickets_for_occupancy), 0)::float8 AS total_tickets_for_occupancy,
+            COALESCE(SUM(total_capacity), 0)::float8 AS total_capacity,
+            COALESCE(AVG(occupancy), 0)::float8 AS avg_studio_occupancy
+          FROM studio_occupancy
         ),
         ticket_agg AS (
           SELECT
@@ -99,7 +116,7 @@ export async function getSummary({
           JOIN schedules s ON t.schedule_id = s.schedule_id
           JOIN studio st ON s.studio_id = st.studio_id
           JOIN cinema c ON st.cinema_id = c.cinema_id
-          WHERE CAST(t.trans_time AS TIMESTAMP) BETWEEN $1 AND $2${extraFilterSql}
+          WHERE CAST(t.trans_time AS TIMESTAMP) BETWEEN $3 AND $4${extraFilterSql}
         )
         SELECT
           ta.total_tickets,
@@ -107,7 +124,8 @@ export async function getSummary({
           ta.total_transactions,
           ta.cinema_aktif,
           oa.total_tickets_for_occupancy,
-          oa.total_capacity
+          oa.total_capacity,
+          oa.avg_studio_occupancy
         FROM ticket_agg ta
         CROSS JOIN occupancy_agg oa`,
           params
@@ -117,13 +135,9 @@ export async function getSummary({
 
         return {
           total_tickets: Number(row.total_tickets || 0),
+          total_capacity: Number(row.total_capacity || 0),
           revenue: Number(row.revenue || 0),
-          occupancy:
-            Number(row.total_capacity || 0) > 0
-              ? Number(
-                  ((Number(row.total_tickets_for_occupancy || 0) * 100) / Number(row.total_capacity)).toFixed(2)
-                )
-              : 0,
+          avg_occupancy: Number((Number(row.avg_studio_occupancy || 0) * 100).toFixed(2)),
           total_transactions: Number(row.total_transactions || 0),
           cinema_aktif: Number(row.cinema_aktif || 0)
         };
@@ -137,14 +151,14 @@ export async function getSummary({
 
       if (String(compare) === "true" || compare === true) {
         const diff = endDate.getTime() - startDate.getTime();
-        const previousStart = new Date(startDate.getTime() - diff);
-        const previousEnd = new Date(startDate);
+        const previousEnd = new Date(startDate.getTime() - 1);
+        const previousStart = new Date(previousEnd.getTime() - diff);
         const previous = await runQuery(previousStart, previousEnd);
 
         growth = {
           tickets: percentageGrowth(current.total_tickets, previous.total_tickets),
           revenue: percentageGrowth(current.revenue, previous.revenue),
-          occupancy: percentageGrowth(current.occupancy, previous.occupancy)
+          avg_occupancy: percentageGrowth(current.avg_occupancy, previous.avg_occupancy)
         };
       }
 
@@ -223,7 +237,7 @@ export async function getTrends({
   }
 
   return withCache(
-    "stats-trends",
+    "stats-trends-v2",
     { start_date, end_date, group_by, city, cinema_id, movie_id, studio_id },
     config.cacheTtlSeconds,
     async () => {
@@ -264,8 +278,8 @@ export async function getTrends({
       );
 
       const diff = endDate.getTime() - startDate.getTime();
-      const previousStart = new Date(startDate.getTime() - diff);
-      const previousEnd = new Date(startDate);
+      const previousEnd = new Date(startDate.getTime() - 1);
+      const previousStart = new Date(previousEnd.getTime() - diff);
       const previousBreakdown = await runTrendQuery(previousStart, previousEnd);
       const previousTotals = previousBreakdown.reduce(
         (accumulator, item) => ({
@@ -312,7 +326,7 @@ export async function getOccupancy({
     studioId: studio_id
   });
 
-  const params = [startDate, endDate];
+  const params = [formatDateOnly(startDate), formatDateOnly(endDate)];
   const filters = [];
 
   if (city) {
@@ -341,7 +355,7 @@ export async function getOccupancy({
       : "CAST(s.show_date AS DATE)";
 
   return withCache(
-    "stats-occupancy",
+    "stats-occupancy-v2",
     { start_date, end_date, group_by, cinema_id, studio_id, movie_id, city },
     config.cacheTtlSeconds,
     async () => {
@@ -426,7 +440,7 @@ export async function getMovieStats({
   });
 
   return withCache(
-    "stats-movie",
+    "stats-movie-v2",
     { city, cinema_id, rating_usia, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {

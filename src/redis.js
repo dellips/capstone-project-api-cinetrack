@@ -11,7 +11,6 @@ function createRedisClient() {
 
   try {
     new URL(config.redisUrl);
-    console.info("bisa weh")
   } catch {
     console.error("Redis disabled: REDIS_URL is invalid");
     return null;

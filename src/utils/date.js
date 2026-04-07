@@ -1,5 +1,26 @@
 import { createHttpError } from "./http-error.js";
 
+function parseDateOnly(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  const result = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (
+    result.getFullYear() !== Number(year) ||
+    result.getMonth() !== Number(month) - 1 ||
+    result.getDate() !== Number(day)
+  ) {
+    return null;
+  }
+
+  return result;
+}
+
 function endOfDay(date) {
   const result = new Date(date);
   result.setHours(23, 59, 59, 999);
@@ -14,12 +35,14 @@ function startOfDay(date) {
 
 export function resolveDateRange(startDate, endDate, period = "daily") {
   if (startDate && endDate) {
-    const parsedStart = new Date(startDate);
-    const parsedEnd = endOfDay(new Date(endDate));
+    const parsedStart = parseDateOnly(startDate);
+    const parsedEndBase = parseDateOnly(endDate);
 
-    if (Number.isNaN(parsedStart.getTime()) || Number.isNaN(parsedEnd.getTime())) {
+    if (!parsedStart || !parsedEndBase) {
       throw createHttpError(400, "Invalid date format (YYYY-MM-DD)");
     }
+
+    const parsedEnd = endOfDay(parsedEndBase);
 
     if (parsedStart > parsedEnd) {
       throw createHttpError(400, "start_date cannot be greater than end_date");
@@ -51,7 +74,11 @@ export function resolveDateRange(startDate, endDate, period = "daily") {
 }
 
 export function formatDateOnly(value) {
-  return new Date(value).toISOString().slice(0, 10);
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // Mengembalikan range tanggal opsional dan menolak jika hanya salah satu sisi yang dikirim.

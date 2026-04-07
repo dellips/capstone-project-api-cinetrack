@@ -10,6 +10,7 @@ import statsRoutes from "./routes/stats.routes.js";
 import systemRoutes from "./routes/system.routes.js";
 import { pool } from "./db.js";
 import { config } from "./config.js";
+import { getCacheContext, runWithCacheContext } from "./utils/cache.js";
 import { errorResponse } from "./utils/response.js";
 import { closeRedisClient } from "./redis.js";
 
@@ -93,20 +94,30 @@ export function buildApp() {
   });
 
   app.addHook("onRequest", async (request, reply) => {
-    const origin = request.headers.origin;
-    const allowedOrigin = getCorsOrigin(origin);
+    return runWithCacheContext(async () => {
+      const origin = request.headers.origin;
+      const allowedOrigin = getCorsOrigin(origin);
 
-    if (allowedOrigin) {
-      reply.header("Access-Control-Allow-Origin", allowedOrigin);
-      reply.header("Vary", "Origin");
-      reply.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-      reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-      reply.header("Access-Control-Allow-Credentials", "true");
-    }
+      if (allowedOrigin) {
+        reply.header("Access-Control-Allow-Origin", allowedOrigin);
+        reply.header("Vary", "Origin");
+        reply.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+        reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        reply.header("Access-Control-Allow-Credentials", "true");
+      }
 
-    if (request.method === "OPTIONS") {
-      return reply.status(204).send();
-    }
+      if (request.method === "OPTIONS") {
+        return reply.status(204).send();
+      }
+    });
+  });
+
+  app.addHook("onSend", async (request, reply, payload) => {
+    const cacheContext = getCacheContext();
+
+    reply.header("X-Cache", cacheContext?.status || "BYPASS");
+
+    return payload;
   });
 
   app.setErrorHandler((error, request, reply) => {

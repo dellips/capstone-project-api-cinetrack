@@ -794,26 +794,33 @@
         "responses": {
           "200": {
             "description": "Summary analytics",
+            "headers": {
+              "X-Cache": {
+                "description": "Cache status for this response: HIT, MISS, or BYPASS.",
+                "schema": { "type": "string", "example": "MISS" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
                 "example": {
                   "success": true,
                   "data": {
-                    "total_tickets": 294,
-                    "revenue": 11100000,
-                    "occupancy": 19.81,
-                    "total_transactions": 238,
+                    "total_tickets": 7847,
+                    "total_capacity": 36000,
+                    "revenue": 318897536,
+                    "avg_occupancy": 19.81,
+                    "total_transactions": 936,
                     "cinema_aktif": 20,
                     "cinema_tersedia": 20,
                     "growth": {
-                      "tickets": -96.04,
-                      "revenue": -96.07,
-                      "occupancy": 0.76
+                      "tickets": 10.01,
+                      "revenue": 17.6,
+                      "avg_occupancy": 1.59
                     }
                   },
                   "meta": {
-                    "period": "2026-04-06 to 2026-04-07",
+                    "period": "2026-04-07 to 2026-04-07",
                     "filters": {
                       "city": null,
                       "cinema_id": null,
@@ -845,6 +852,12 @@
         "responses": {
           "200": {
             "description": "Trend analytics",
+            "headers": {
+              "X-Cache": {
+                "description": "Cache status for this response: HIT, MISS, or BYPASS.",
+                "schema": { "type": "string", "example": "MISS" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
@@ -852,19 +865,24 @@
                   "success": true,
                   "data": {
                     "summary": {
-                      "group_by": "daily",
+                      "group_by": "hourly",
                       "total_tickets": 7847,
-                      "revenue": 318904000,
+                      "revenue": 318895000,
                       "growth": {
-                        "tickets": 10.03,
-                        "revenue": 17.74
+                        "tickets": 10.01,
+                        "revenue": 17.61
                       }
                     },
                     "breakdown": [
                       {
-                        "time_group": "2026-04-06T17:00:00.000Z",
-                        "tickets_sold": 7847,
-                        "revenue": 318904000
+                        "time_group": "0",
+                        "tickets_sold": 294,
+                        "revenue": 11100000
+                      },
+                      {
+                        "time_group": "18",
+                        "tickets_sold": 406,
+                        "revenue": 17555000
                       }
                     ]
                   }
@@ -891,6 +909,12 @@
         "responses": {
           "200": {
             "description": "Occupancy analytics",
+            "headers": {
+              "X-Cache": {
+                "description": "Cache status for this response: HIT, MISS, or BYPASS.",
+                "schema": { "type": "string", "example": "MISS" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
@@ -898,17 +922,23 @@
                   "success": true,
                   "data": {
                     "summary": {
-                      "group_by": "daily",
+                      "group_by": "hourly",
                       "total_tickets": 7133,
                       "total_capacity": 36000,
                       "occupancy": 19.81
                     },
                     "breakdown": [
                       {
-                        "time_group": "2026-04-06T17:00:00.000Z",
-                        "total_tickets": 7133,
-                        "total_capacity": 36000,
-                        "occupancy": 19.81
+                        "time_group": "2026-04-07 12:00",
+                        "total_tickets": 1316,
+                        "total_capacity": 9000,
+                        "occupancy": 14.62
+                      },
+                      {
+                        "time_group": "2026-04-07 21:00",
+                        "total_tickets": 2329,
+                        "total_capacity": 9000,
+                        "occupancy": 25.88
                       }
                     ]
                   }
