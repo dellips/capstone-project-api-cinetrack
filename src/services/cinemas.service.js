@@ -1,6 +1,7 @@
 import { query } from "../db.js";
 import { validateFilters } from "../utils/validation.js";
 
+// Menghitung ringkasan dan breakdown bioskop berdasarkan filter yang dikirim frontend.
 export async function getCinemas({ city = null, cinema_id = null } = {}) {
   await validateFilters({
     city,
@@ -150,10 +151,6 @@ export async function getCinemas({ city = null, cinema_id = null } = {}) {
   );
 
   return {
-    filters: {
-      city,
-      cinema_id
-    },
     summary: {
       total_cinemas: summary.total_cinemas,
       active_cinemas: summary.active_cinemas,

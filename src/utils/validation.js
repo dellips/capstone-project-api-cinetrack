@@ -1,6 +1,7 @@
 import { query } from "../db.js";
 import { createHttpError } from "./http-error.js";
 
+// Memastikan filter relasional valid agar query analytics tidak menerima kombinasi yang salah.
 export async function validateFilters({ city = null, cinemaId = null, studioId = null }) {
   if (cinemaId) {
     const cinemaResult = await query(
@@ -9,11 +10,15 @@ export async function validateFilters({ city = null, cinemaId = null, studioId =
     );
 
     if (cinemaResult.rowCount === 0) {
-      throw createHttpError(400, "cinema_id not found");
+      throw createHttpError(404, "cinema_id not found", "CINEMA_NOT_FOUND");
     }
 
     if (city && cinemaResult.rows[0].city !== city) {
-      throw createHttpError(400, "cinema_id does not belong to the given city");
+      throw createHttpError(
+        422,
+        "cinema_id does not belong to the given city",
+        "INVALID_FILTER_COMBINATION"
+      );
     }
   }
 
@@ -24,11 +29,15 @@ export async function validateFilters({ city = null, cinemaId = null, studioId =
     );
 
     if (studioResult.rowCount === 0) {
-      throw createHttpError(400, "studio_id not found");
+      throw createHttpError(404, "studio_id not found", "STUDIO_NOT_FOUND");
     }
 
     if (cinemaId && studioResult.rows[0].cinema_id !== cinemaId) {
-      throw createHttpError(400, "studio_id does not belong to cinema_id");
+      throw createHttpError(
+        422,
+        "studio_id does not belong to cinema_id",
+        "INVALID_FILTER_COMBINATION"
+      );
     }
   }
 }
