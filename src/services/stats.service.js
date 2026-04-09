@@ -45,7 +45,7 @@ export async function getSummary({
   city = null,
   cinema_id = null,
   studio_id = null,
-  compare = false
+  compare = true
 }) {
   const { startDate, endDate } = resolveDateRange(start_date, end_date, period);
 
