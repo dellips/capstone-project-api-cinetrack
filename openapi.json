@@ -12,28 +12,61 @@
     }
   ],
   "tags": [
-    { "name": "System" },
-    { "name": "Auth" },
-    { "name": "Movies" },
-    { "name": "Cinemas" },
-    { "name": "Studios" },
-    { "name": "Schedules" },
-    { "name": "Tikets" },
-    { "name": "Analytics" },
-    { "name": "Notifications" },
-    { "name": "Settings" }
+    {
+      "name": "System"
+    },
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Movies"
+    },
+    {
+      "name": "Cinemas"
+    },
+    {
+      "name": "Studios"
+    },
+    {
+      "name": "Schedules"
+    },
+    {
+      "name": "Tikets"
+    },
+    {
+      "name": "Analytics"
+    },
+    {
+      "name": "Notifications"
+    },
+    {
+      "name": "Settings"
+    },
+    {
+      "name": "Tickets"
+    },
+    {
+      "name": "Dashboard"
+    },
+    {
+      "name": "Support"
+    }
   ],
   "paths": {
     "/": {
       "get": {
-        "tags": ["System"],
+        "tags": [
+          "System"
+        ],
         "summary": "Check API availability",
         "responses": {
           "200": {
             "description": "API is running",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -48,14 +81,18 @@
     },
     "/system/health": {
       "get": {
-        "tags": ["System"],
+        "tags": [
+          "System"
+        ],
         "summary": "Get backend health details",
         "responses": {
           "200": {
             "description": "Health is active",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -71,7 +108,9 @@
             "description": "Database or service unavailable",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -88,13 +127,17 @@
     },
     "/auth/login": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Login admin user",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
             }
           }
         },
@@ -103,7 +146,9 @@
             "description": "Login success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -120,20 +165,28 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/ErrorResponse" },
-          "422": { "$ref": "#/components/responses/ErrorResponse" }
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/auth/refresh": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Refresh access token",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RefreshRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
             }
           }
         },
@@ -142,7 +195,9 @@
             "description": "Token refreshed",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -159,19 +214,25 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/ErrorResponse" }
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/auth/logout": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Logout admin user",
         "requestBody": {
           "required": false,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LogoutRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
             }
           }
         },
@@ -180,7 +241,9 @@
             "description": "Logout success",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -195,15 +258,23 @@
     },
     "/auth/me": {
       "get": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Get current authenticated admin",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Current user",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -216,34 +287,64 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/ErrorResponse" }
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/movies": {
       "get": {
-        "tags": ["Movies"],
+        "tags": [
+          "Movies"
+        ],
         "summary": "List movies",
         "parameters": [
-          { "$ref": "#/components/parameters/PageParam" },
-          { "$ref": "#/components/parameters/LimitParam" },
-          { "name": "search", "in": "query", "schema": { "type": "string" } },
-          { "name": "genre", "in": "query", "schema": { "type": "string" } },
-          { "name": "rating_usia", "in": "query", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rating_usia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Movie list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": [
                     {
                       "movie_id": "M003",
                       "title": "Agak Laen",
-                      "genre": ["Comedy"],
+                      "genre": [
+                        "Comedy"
+                      ],
                       "rating_usia": "R13",
                       "duration_min": 132
                     }
@@ -265,28 +366,40 @@
               }
             }
           },
-          "422": { "$ref": "#/components/responses/ErrorResponse" }
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/movies/{movie_id}": {
       "get": {
-        "tags": ["Movies"],
+        "tags": [
+          "Movies"
+        ],
         "summary": "Get movie detail",
-        "parameters": [{ "$ref": "#/components/parameters/MovieIdParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MovieIdParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Movie detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
                     "movie": {
                       "movie_id": "M003",
                       "title": "Agak Laen",
-                      "genre": ["Comedy"],
+                      "genre": [
+                        "Comedy"
+                      ],
                       "rating_usia": "R13",
                       "duration_min": 132
                     },
@@ -295,7 +408,10 @@
                       "total_revenue": 5218440000,
                       "avg_ticket_price": 47789.22
                     },
-                    "showing_at": ["C001", "C002"],
+                    "showing_at": [
+                      "C001",
+                      "C002"
+                    ],
                     "seat_distribution": {
                       "Regular": 93000,
                       "Sweetbox": 16197
@@ -305,27 +421,43 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/movies/{movie_id}/performance": {
       "get": {
-        "tags": ["Movies"],
+        "tags": [
+          "Movies"
+        ],
         "summary": "Get movie performance",
         "parameters": [
-          { "$ref": "#/components/parameters/MovieIdParam" },
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" }
+          {
+            "$ref": "#/components/parameters/MovieIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Movie performance",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -335,7 +467,10 @@
                       "avg_ticket_price": 49322.34,
                       "showing_at_count": 16
                     },
-                    "showing_at": ["C001", "C002"],
+                    "showing_at": [
+                      "C001",
+                      "C002"
+                    ],
                     "seat_distribution": {
                       "Regular": 50,
                       "Sweetbox": 16
@@ -360,34 +495,56 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/movie": {
       "get": {
-        "tags": ["Analytics"],
+        "tags": [
+          "Analytics"
+        ],
         "summary": "Rank movies by ticket sales",
         "parameters": [
-          { "name": "top10", "in": "query", "schema": { "type": "boolean" } },
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" }
+          {
+            "name": "top10",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Movie ranking",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": [
                     {
                       "movie_id": "M003",
                       "title": "Agak Laen",
-                      "genre": ["Comedy"],
+                      "genre": [
+                        "Comedy"
+                      ],
                       "rating_usia": "R13",
                       "duration_min": 132,
                       "tickets_sold": 109197,
@@ -412,20 +569,32 @@
     },
     "/cinemas": {
       "get": {
-        "tags": ["Cinemas"],
+        "tags": [
+          "Cinemas"
+        ],
         "summary": "List cinemas with dashboard metrics",
         "parameters": [
-          { "$ref": "#/components/parameters/PageParam" },
-          { "$ref": "#/components/parameters/LimitParam" },
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" }
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Cinema list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -480,15 +649,23 @@
     },
     "/cinemas/{cinema_id}": {
       "get": {
-        "tags": ["Cinemas"],
+        "tags": [
+          "Cinemas"
+        ],
         "summary": "Get cinema detail",
-        "parameters": [{ "$ref": "#/components/parameters/CinemaIdPathParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CinemaIdPathParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Cinema detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -504,25 +681,37 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/cinemas/{cinema_id}/performance": {
       "get": {
-        "tags": ["Cinemas"],
+        "tags": [
+          "Cinemas"
+        ],
         "summary": "Get cinema performance",
         "parameters": [
-          { "$ref": "#/components/parameters/CinemaIdPathParam" },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" }
+          {
+            "$ref": "#/components/parameters/CinemaIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Cinema performance",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -547,27 +736,51 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/studios": {
       "get": {
-        "tags": ["Studios"],
+        "tags": [
+          "Studios"
+        ],
         "summary": "List studios",
         "parameters": [
-          { "$ref": "#/components/parameters/PageParam" },
-          { "$ref": "#/components/parameters/LimitParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "studio_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "screen_type", "in": "query", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "screen_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Studio list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": [
@@ -601,15 +814,23 @@
     },
     "/studios/{studio_id}": {
       "get": {
-        "tags": ["Studios"],
+        "tags": [
+          "Studios"
+        ],
         "summary": "Get studio detail",
-        "parameters": [{ "$ref": "#/components/parameters/StudioIdParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StudioIdParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Studio detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -625,31 +846,72 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/schedules": {
       "get": {
-        "tags": ["Schedules"],
+        "tags": [
+          "Schedules"
+        ],
         "summary": "List schedules",
         "parameters": [
-          { "$ref": "#/components/parameters/PageParam" },
-          { "$ref": "#/components/parameters/LimitParam" },
-          { "name": "movie_id", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "studio_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "show_date", "in": "query", "schema": { "type": "string", "format": "date" } },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" },
-          { "name": "status", "in": "query", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "show_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Schedule list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": [
@@ -673,15 +935,23 @@
     },
     "/schedules/{schedule_id}": {
       "get": {
-        "tags": ["Schedules"],
+        "tags": [
+          "Schedules"
+        ],
         "summary": "Get schedule detail",
-        "parameters": [{ "$ref": "#/components/parameters/ScheduleIdParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ScheduleIdParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Schedule detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -700,31 +970,71 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/tikets": {
       "get": {
-        "tags": ["Tikets"],
+        "tags": [
+          "Tikets"
+        ],
         "summary": "List tikets",
         "parameters": [
-          { "$ref": "#/components/parameters/PageParam" },
-          { "$ref": "#/components/parameters/LimitParam" },
-          { "name": "schedule_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "movie_id", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "payment_type", "in": "query", "schema": { "type": "string" } },
-          { "name": "seat_category", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" }
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "name": "schedule_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "payment_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seat_category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Tiket list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": [
@@ -748,15 +1058,23 @@
     },
     "/tikets/{tiket_id}": {
       "get": {
-        "tags": ["Tikets"],
+        "tags": [
+          "Tikets"
+        ],
         "summary": "Get tiket detail",
-        "parameters": [{ "$ref": "#/components/parameters/TiketIdParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TiketIdParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Tiket detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -774,22 +1092,57 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/stats/summary": {
       "get": {
-        "tags": ["Analytics"],
+        "tags": [
+          "Analytics"
+        ],
         "summary": "Get summary KPIs",
         "parameters": [
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" },
-          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["daily", "weekly", "monthly"] } },
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "studio_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "compare", "in": "query", "schema": { "type": "boolean" } }
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "compare",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -797,12 +1150,17 @@
             "headers": {
               "X-Cache": {
                 "description": "Cache status for this response: HIT, MISS, or BYPASS.",
-                "schema": { "type": "string", "example": "MISS" }
+                "schema": {
+                  "type": "string",
+                  "example": "MISS"
+                }
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -838,16 +1196,48 @@
     },
     "/stats/trends": {
       "get": {
-        "tags": ["Analytics"],
+        "tags": [
+          "Analytics"
+        ],
         "summary": "Get trend breakdown",
         "parameters": [
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" },
-          { "name": "group_by", "in": "query", "schema": { "type": "string", "enum": ["hourly", "daily"] } },
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "movie_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "studio_id", "in": "query", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hourly",
+                "daily"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -855,12 +1245,17 @@
             "headers": {
               "X-Cache": {
                 "description": "Cache status for this response: HIT, MISS, or BYPASS.",
-                "schema": { "type": "string", "example": "MISS" }
+                "schema": {
+                  "type": "string",
+                  "example": "MISS"
+                }
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -895,16 +1290,48 @@
     },
     "/stats/occupancy": {
       "get": {
-        "tags": ["Analytics"],
+        "tags": [
+          "Analytics"
+        ],
         "summary": "Get occupancy breakdown",
         "parameters": [
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" },
-          { "name": "group_by", "in": "query", "schema": { "type": "string", "enum": ["hourly", "daily"] } },
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "movie_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "studio_id", "in": "query", "schema": { "type": "string" } }
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hourly",
+                "daily"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -912,12 +1339,17 @@
             "headers": {
               "X-Cache": {
                 "description": "Cache status for this response: HIT, MISS, or BYPASS.",
-                "schema": { "type": "string", "example": "MISS" }
+                "schema": {
+                  "type": "string",
+                  "example": "MISS"
+                }
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -951,21 +1383,39 @@
     },
     "/stats/movie": {
       "get": {
-        "tags": ["Analytics"],
+        "tags": [
+          "Analytics"
+        ],
         "summary": "Get movie analytics by rating and filters",
         "parameters": [
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "name": "rating_usia", "in": "query", "schema": { "type": "string" } },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" }
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "rating_usia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Movie analytics",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -999,20 +1449,32 @@
     },
     "/stats/cinema": {
       "get": {
-        "tags": ["Analytics"],
+        "tags": [
+          "Analytics"
+        ],
         "summary": "Get aggregate cinema analytics",
         "parameters": [
-          { "$ref": "#/components/parameters/CityParam" },
-          { "$ref": "#/components/parameters/CinemaIdQueryParam" },
-          { "$ref": "#/components/parameters/StartDateParam" },
-          { "$ref": "#/components/parameters/EndDateParam" }
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
         ],
         "responses": {
           "200": {
             "description": "Cinema analytics",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1052,20 +1514,51 @@
     },
     "/notifications": {
       "get": {
-        "tags": ["Notifications"],
+        "tags": [
+          "Notifications"
+        ],
         "summary": "List notifications",
         "parameters": [
-          { "$ref": "#/components/parameters/PageParam" },
-          { "$ref": "#/components/parameters/LimitParam" },
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["read", "unread", "all"] } },
-          { "name": "severity", "in": "query", "schema": { "type": "string", "enum": ["info", "warning", "critical", "success"] } }
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "read",
+                "unread",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "info",
+                "warning",
+                "critical",
+                "success"
+              ]
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Notification list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": [
@@ -1103,15 +1596,23 @@
     },
     "/notifications/{notification_id}": {
       "get": {
-        "tags": ["Notifications"],
+        "tags": [
+          "Notifications"
+        ],
         "summary": "Get notification detail",
-        "parameters": [{ "$ref": "#/components/parameters/NotificationIdParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationIdParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Notification detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1130,21 +1631,31 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/notifications/{notification_id}/read": {
       "patch": {
-        "tags": ["Notifications"],
+        "tags": [
+          "Notifications"
+        ],
         "summary": "Mark one notification as read",
-        "parameters": [{ "$ref": "#/components/parameters/NotificationIdParam" }],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationIdParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Notification marked as read",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1155,20 +1666,26 @@
               }
             }
           },
-          "404": { "$ref": "#/components/responses/ErrorResponse" }
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       }
     },
     "/notifications/read-all": {
       "patch": {
-        "tags": ["Notifications"],
+        "tags": [
+          "Notifications"
+        ],
         "summary": "Mark all notifications as read",
         "responses": {
           "200": {
             "description": "All notifications marked as read",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1183,14 +1700,18 @@
     },
     "/alerts/summary": {
       "get": {
-        "tags": ["Notifications"],
+        "tags": [
+          "Notifications"
+        ],
         "summary": "Get alerts summary",
         "responses": {
           "200": {
             "description": "Alert summary",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1208,15 +1729,23 @@
     },
     "/settings": {
       "get": {
-        "tags": ["Settings"],
+        "tags": [
+          "Settings"
+        ],
         "summary": "Get dashboard settings",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Current settings",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1227,18 +1756,28 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/ErrorResponse" }
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
         }
       },
       "patch": {
-        "tags": ["Settings"],
+        "tags": [
+          "Settings"
+        ],
         "summary": "Update dashboard settings",
-        "security": [{ "BearerAuth": [] }],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SettingsPatchRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SettingsPatchRequest"
+              }
             }
           }
         },
@@ -1247,7 +1786,9 @@
             "description": "Updated settings",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SuccessEnvelope" },
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
                 "example": {
                   "success": true,
                   "data": {
@@ -1258,8 +1799,1465 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/ErrorResponse" },
-          "422": { "$ref": "#/components/responses/ErrorResponse" }
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/tickets": {
+      "get": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "List tickets",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "name": "schedule_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "payment_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seat_category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "ticket_id": "T00000001",
+                      "schedule_id": "S000001",
+                      "movie_id": "M001",
+                      "cinema_id": "C001",
+                      "seat_category": "Regular",
+                      "final_price": 45000,
+                      "trans_time": "2026-05-14T12:00:00.000Z",
+                      "payment_type": "QRIS",
+                      "status": "success",
+                      "is_mock_status": true
+                    }
+                  ],
+                  "meta": {
+                    "filters": {
+                      "schedule_id": null,
+                      "movie_id": null,
+                      "cinema_id": null
+                    },
+                    "pagination": {
+                      "page": 1,
+                      "limit": 20,
+                      "total": 1,
+                      "total_pages": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tickets/{ticket_id}": {
+      "get": {
+        "tags": [
+          "Tickets"
+        ],
+        "summary": "Get ticket detail",
+        "parameters": [
+          {
+            "name": "ticket_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ticket detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "ticket_id": "T00000001",
+                    "schedule_id": "S000001",
+                    "movie_id": "M001",
+                    "cinema_id": "C001",
+                    "seat_category": "Regular",
+                    "final_price": 45000,
+                    "trans_time": "2026-05-14T12:00:00.000Z",
+                    "payment_type": "QRIS",
+                    "status": "success",
+                    "is_mock_status": true
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/system/status": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Get cinema node status summary",
+        "responses": {
+          "200": {
+            "description": "System status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "system": {
+                      "status": "active",
+                      "last_data_in": "2026-05-14T12:00:00.000Z",
+                      "tickets_last_hour": 334677
+                    },
+                    "summary": {
+                      "total_nodes": 20,
+                      "active_nodes": 20,
+                      "inactive_nodes": 0,
+                      "down_nodes": 0,
+                      "health_rate": 100
+                    },
+                    "nodes": [
+                      {
+                        "cinema_id": "C001",
+                        "cinema_name": "Semarang Mall 1 XXI",
+                        "city": "Semarang",
+                        "status": "active",
+                        "heartbeat_at": "2026-05-14T12:00:00.000Z",
+                        "last_sync": "2026-05-14T12:00:00.000Z",
+                        "is_mock_node_status": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/config": {
+      "get": {
+        "tags": [
+          "Support"
+        ],
+        "summary": "List payment configuration",
+        "responses": {
+          "200": {
+            "description": "Payment config list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "payment_type": "QRIS",
+                      "admin_fee": 1000,
+                      "success_rate": 100,
+                      "failure_rate": 0,
+                      "is_mock_config": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cities": {
+      "get": {
+        "tags": [
+          "Support"
+        ],
+        "summary": "List supported cities for maps and filters",
+        "responses": {
+          "200": {
+            "description": "City list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "city": "Bandung",
+                      "total_cinemas": 8,
+                      "lat": null,
+                      "lng": null,
+                      "is_mock_location": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/executive": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get executive dashboard summary",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Executive dashboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "system_status": {
+                      "status": "active",
+                      "last_update": "2026-05-14T12:00:00.000Z",
+                      "health_rate": 100
+                    },
+                    "active_vs_inactive_cinema": {
+                      "total": 20,
+                      "active": 20,
+                      "inactive": 0,
+                      "maintenance": 0,
+                      "down": 0,
+                      "is_mock_maintenance": true
+                    },
+                    "franchise_performance": [],
+                    "city_revenue_summary": [],
+                    "top_film_contribution": [],
+                    "alert_summary": {
+                      "critical": 0,
+                      "warning": 0,
+                      "info": 2,
+                      "unread": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/overview": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get sales overview metrics",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total_revenue": 318897536,
+                    "total_tickets": 7847,
+                    "avg_ticket_price": 40639.47,
+                    "revenue_per_seat": 8858.27,
+                    "avg_occupancy": 19.81,
+                    "growth": {
+                      "tickets": 10.01,
+                      "revenue": 17.6,
+                      "avg_occupancy": 1.59
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/revenue-by-cinema": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get revenue breakdown by cinema",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revenue by cinema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_cinemas": 20,
+                      "active_cinemas": 20
+                    },
+                    "top_performing_cinema": {
+                      "rank": 1,
+                      "cinema_id": "C001",
+                      "cinema_name": "Semarang Mall 1 XXI",
+                      "city": "Semarang",
+                      "total_revenue": 12500000,
+                      "total_tickets": 280,
+                      "contribution": 6.5,
+                      "top_movie": null
+                    },
+                    "lowest_performing_cinema": null,
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/revenue-by-movie": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get revenue breakdown by movie",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "top_n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revenue by movie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total_movies": 8,
+                    "top_movie": {
+                      "rank": 1,
+                      "movie_id": "M005",
+                      "title": "Siksa Kubur",
+                      "total_revenue": 132880000,
+                      "total_tickets": 2516,
+                      "contribution": 17.2
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/time-slots": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get sales metrics by time slot",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales time slots",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "peak_sales_hour": {
+                      "time_slot": "18:00",
+                      "revenue": 210605000,
+                      "demand": 3976,
+                      "occupancy": 44.18,
+                      "normalized_demand": 1,
+                      "normalized_revenue": 1,
+                      "optimization_score": 0.2,
+                      "recommendation": "Pertahankan slot ini sambil memantau perubahan demand."
+                    },
+                    "quiet_hour": {
+                      "time_slot": "15:00",
+                      "revenue": 151545000,
+                      "demand": 2859,
+                      "occupancy": 31.77,
+                      "normalized_demand": 0,
+                      "normalized_revenue": 0,
+                      "optimization_score": 0
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/trend": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get sales trend with moving average and forecast",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "daily",
+                "monthly"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales trend",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "group_by": "daily",
+                      "total_revenue": 318897536,
+                      "total_tickets": 7847
+                    },
+                    "forecast": {
+                      "group_by": "daily",
+                      "next_period": "next_period",
+                      "projected_revenue": 103000000,
+                      "is_mock_forecast": true
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/payment": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get payment preference and profitability",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "payment_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales payment metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "total_transactions": 7847,
+                    "preferred_payment": {
+                      "payment_type": "QRIS",
+                      "total_transactions": 3500,
+                      "usage_rate": 44.6,
+                      "gross_revenue": 145000000,
+                      "avg_price": 41428.57,
+                      "admin_fee": 1000,
+                      "success_rate": 100,
+                      "failure_rate": 0,
+                      "net_profitability": 141500000,
+                      "is_mock_config": true
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/operational-risk": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get sales operational risk summary",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sales operational risk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_shows": 100,
+                      "cancelled": 2,
+                      "delayed": 1,
+                      "avg_delay_minutes": null,
+                      "problematic_rate": 3,
+                      "is_mock_delay": true
+                    },
+                    "problematic_schedules": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/films/overview": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get films overview metrics",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Films overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "active_films": 8,
+                    "total_shows": 120,
+                    "tickets_sold": 7847,
+                    "revenue": 318897536,
+                    "avg_occupancy": 19.81,
+                    "growth": {
+                      "tickets": 10.01,
+                      "revenue": 17.6,
+                      "avg_occupancy": 1.59
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/films/performance": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get films performance and blockbuster ranking",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "top_n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Films performance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "top_movie": {
+                      "rank": 1,
+                      "movie_id": "M005",
+                      "title": "Siksa Kubur",
+                      "total_tickets": 2516,
+                      "total_revenue": 132880000,
+                      "blockbuster_score": 54628307.2
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/films/schedules": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get film schedule performance and audience density",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Film schedules analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "schedule_performance": [],
+                    "repeat_schedule_performance": [],
+                    "audience_density": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/films/occupancy": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get films occupancy breakdown",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Films occupancy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "overall": {
+                      "group_by": "daily",
+                      "total_tickets": 7847,
+                      "total_capacity": 36000,
+                      "occupancy": 19.81
+                    },
+                    "by_movie": [],
+                    "by_day": [],
+                    "by_studio": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/films/distribution": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get genre popularity and studio format distribution",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Films distribution",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "genre_popularity": {
+                      "summary": {
+                        "total_movies_showing": 8,
+                        "total_tickets_sold": 7847,
+                        "top_movie": null,
+                        "top_genre": null
+                      },
+                      "breakdown": [],
+                      "breakdown_rating_usia": []
+                    },
+                    "studio_format_distribution": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/films/operational-risk": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get film operational risk summary",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Films operational risk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_shows": 100,
+                      "cancelled": 2,
+                      "delayed": 1,
+                      "avg_delay_minutes": null,
+                      "problematic_rate": 3,
+                      "is_mock_delay": true
+                    },
+                    "impacted_movies": [],
+                    "problematic_schedules": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/notifications": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "List dashboard notifications",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageParam"
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "read",
+                "unread",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "info",
+                "warning",
+                "critical",
+                "success"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "type": "system-health",
+                      "severity": "success",
+                      "title": "Backend health",
+                      "what_happened": "Backend is active and responding normally.",
+                      "where": "network",
+                      "impact_size": 334677,
+                      "recommended_action": "Cek konektivitas backend, database, dan sinkronisasi data.",
+                      "created_at": "2026-04-10T08:15:33.194Z",
+                      "status": "read",
+                      "resolved": true
+                    }
+                  ],
+                  "meta": {
+                    "filters": {
+                      "status": "all",
+                      "severity": null
+                    },
+                    "pagination": {
+                      "page": 1,
+                      "limit": 20,
+                      "total": 4,
+                      "total_pages": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/pricing-recommendation": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Get pricing recommendation by time slot",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "top_n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pricing recommendation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_slots_analyzed": 4,
+                      "recommended_changes": 2,
+                      "peak_sales_hour": null,
+                      "quiet_hour": null,
+                      "is_rule_based": true
+                    },
+                    "recommendations": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/early-blockbuster": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Detect early blockbuster candidates",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "min_tickets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "min_growth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Early blockbuster analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "min_tickets": 100,
+                      "min_growth": 25,
+                      "detected_movies": 2,
+                      "is_rule_based": true
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/cannibalization": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Detect possible show cannibalization",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "min_competitor_occupancy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "max_impacted_occupancy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cannibalization analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_slots_analyzed": 80,
+                      "possible_cannibalization_cases": 0,
+                      "is_rule_based": true
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -1277,7 +3275,9 @@
         "description": "Error response",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
             "example": {
               "success": false,
               "error": {
@@ -1293,82 +3293,116 @@
       "PageParam": {
         "name": "page",
         "in": "query",
-        "schema": { "type": "integer", "minimum": 1 },
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
         "required": false
       },
       "LimitParam": {
         "name": "limit",
         "in": "query",
-        "schema": { "type": "integer", "minimum": 1 },
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
         "required": false
       },
       "StartDateParam": {
         "name": "start_date",
         "in": "query",
-        "schema": { "type": "string", "format": "date" },
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
         "required": false
       },
       "EndDateParam": {
         "name": "end_date",
         "in": "query",
-        "schema": { "type": "string", "format": "date" },
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
         "required": false
       },
       "CityParam": {
         "name": "city",
         "in": "query",
-        "schema": { "type": "string" },
+        "schema": {
+          "type": "string"
+        },
         "required": false
       },
       "CinemaIdQueryParam": {
         "name": "cinema_id",
         "in": "query",
-        "schema": { "type": "string" },
+        "schema": {
+          "type": "string"
+        },
         "required": false
       },
       "MovieIdParam": {
         "name": "movie_id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       },
       "CinemaIdPathParam": {
         "name": "cinema_id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       },
       "StudioIdParam": {
         "name": "studio_id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       },
       "ScheduleIdParam": {
         "name": "schedule_id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       },
       "TiketIdParam": {
         "name": "tiket_id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       },
       "NotificationIdParam": {
         "name": "notification_id",
         "in": "path",
         "required": true,
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "schemas": {
       "SuccessEnvelope": {
         "type": "object",
-        "required": ["success", "data"],
+        "required": [
+          "success",
+          "data"
+        ],
         "properties": {
-          "success": { "type": "boolean", "const": true },
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
           "data": {},
           "meta": {
             "type": "object",
@@ -1378,17 +3412,34 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["success", "error"],
+        "required": [
+          "success",
+          "error"
+        ],
         "properties": {
-          "success": { "type": "boolean", "const": false },
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
           "error": {
             "type": "object",
-            "required": ["code", "message"],
+            "required": [
+              "code",
+              "message"
+            ],
             "properties": {
-              "code": { "type": "string" },
-              "message": { "type": "string" },
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
               "details": {
-                "type": ["array", "object", "null"],
+                "type": [
+                  "array",
+                  "object",
+                  "null"
+                ],
                 "items": {
                   "type": "object",
                   "additionalProperties": true
@@ -1400,23 +3451,37 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string" }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
         }
       },
       "RefreshRequest": {
         "type": "object",
-        "required": ["refresh_token"],
+        "required": [
+          "refresh_token"
+        ],
         "properties": {
-          "refresh_token": { "type": "string" }
+          "refresh_token": {
+            "type": "string"
+          }
         }
       },
       "LogoutRequest": {
         "type": "object",
         "properties": {
-          "refresh_token": { "type": "string" }
+          "refresh_token": {
+            "type": "string"
+          }
         }
       },
       "SettingsPatchRequest": {
@@ -1424,7 +3489,11 @@
         "properties": {
           "theme_default": {
             "type": "string",
-            "enum": ["light", "dark", "system"]
+            "enum": [
+              "light",
+              "dark",
+              "system"
+            ]
           },
           "refresh_interval_sec": {
             "type": "integer",

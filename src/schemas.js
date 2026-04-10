@@ -85,7 +85,19 @@ export const baseRouteSchemas = {
       end_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
     })
   },
+  tickets: {
+    querystring: buildListQuerySchema({
+      schedule_id: nonEmptyString,
+      movie_id: nonEmptyString,
+      cinema_id: nonEmptyString,
+      payment_type: nonEmptyString,
+      seat_category: nonEmptyString,
+      start_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+      end_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
+    })
+  },
   tiketDetail: buildIdParamsSchema("tiket_id"),
+  ticketDetail: buildIdParamsSchema("ticket_id"),
   movieRankings: {
     querystring: buildStatsQuerySchema({
       top10: { type: "boolean" }
@@ -181,6 +193,86 @@ export const statsRouteSchemas = {
   cinema: {
     querystring: buildStatsQuerySchema({})
   }
+};
+
+export const dashboardRouteSchemas = {
+  executive: {
+    querystring: buildStatsQuerySchema({})
+  },
+  salesOverview: {
+    querystring: buildStatsQuerySchema({
+      period: { type: "string", enum: ["daily", "weekly", "monthly"] }
+    })
+  },
+  salesRevenueByCinema: {
+    querystring: buildStatsQuerySchema({})
+  },
+  salesRevenueByMovie: {
+    querystring: buildStatsQuerySchema({
+      top_n: positiveInteger
+    })
+  },
+  salesTimeSlots: {
+    querystring: buildStatsQuerySchema({})
+  },
+  salesTrend: {
+    querystring: buildStatsQuerySchema({
+      group_by: { type: "string", enum: ["daily", "monthly"] }
+    })
+  },
+  salesPayment: {
+    querystring: buildStatsQuerySchema({
+      payment_type: nonEmptyString
+    })
+  },
+  salesOperationalRisk: {
+    querystring: buildStatsQuerySchema({})
+  },
+  filmsOverview: {
+    querystring: buildStatsQuerySchema({})
+  },
+  filmsPerformance: {
+    querystring: buildStatsQuerySchema({
+      top_n: positiveInteger
+    })
+  },
+  filmsSchedules: {
+    querystring: buildStatsQuerySchema({})
+  },
+  filmsOccupancy: {
+    querystring: buildStatsQuerySchema({})
+  },
+  filmsDistribution: {
+    querystring: buildStatsQuerySchema({})
+  },
+  filmsOperationalRisk: {
+    querystring: buildStatsQuerySchema({})
+  },
+  pricingRecommendation: {
+    querystring: buildStatsQuerySchema({
+      top_n: positiveInteger
+    })
+  },
+  earlyBlockbuster: {
+    querystring: buildStatsQuerySchema({
+      min_tickets: positiveInteger,
+      min_growth: { type: "number" }
+    })
+  },
+  cannibalization: {
+    querystring: buildStatsQuerySchema({
+      min_competitor_occupancy: { type: "number" },
+      max_impacted_occupancy: { type: "number" }
+    })
+  },
+  notifications: {
+    querystring: buildListQuerySchema({
+      status: { type: "string", enum: ["read", "unread", "all"] },
+      severity: { type: "string", enum: ["info", "warning", "critical", "success"] }
+    })
+  },
+  paymentsConfig: {},
+  cities: {}
 };
 
 export const notificationRouteSchemas = {

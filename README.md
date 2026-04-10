@@ -46,6 +46,16 @@ Atau tanpa watch mode:
 npm start
 ```
 
+Test seluruh endpoint:
+
+```bash
+npm run test:endpoints
+```
+
+Hasil test akan disimpan ke:
+- `reports/endpoint-test-results.json`
+- `reports/endpoint-test-results.md`
+
 ## Base URL
 
 API tersedia di dua jalur:
@@ -156,6 +166,8 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 - `GET /api/v1/schedules/:schedule_id`
 - `GET /api/v1/tikets`
 - `GET /api/v1/tikets/:tiket_id`
+- `GET /api/v1/tickets`
+- `GET /api/v1/tickets/:ticket_id`
 
 ### Analytics
 
@@ -165,6 +177,27 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 - `GET /api/v1/stats/occupancy`
 - `GET /api/v1/stats/movie`
 - `GET /api/v1/stats/cinema`
+- `GET /api/v1/analytics/pricing-recommendation`
+- `GET /api/v1/analytics/early-blockbuster`
+- `GET /api/v1/analytics/cannibalization`
+
+### Dashboard
+
+- `GET /api/v1/dashboard/executive`
+- `GET /api/v1/dashboard/sales/overview`
+- `GET /api/v1/dashboard/sales/revenue-by-cinema`
+- `GET /api/v1/dashboard/sales/revenue-by-movie`
+- `GET /api/v1/dashboard/sales/time-slots`
+- `GET /api/v1/dashboard/sales/trend`
+- `GET /api/v1/dashboard/sales/payment`
+- `GET /api/v1/dashboard/sales/operational-risk`
+- `GET /api/v1/dashboard/films/overview`
+- `GET /api/v1/dashboard/films/performance`
+- `GET /api/v1/dashboard/films/schedules`
+- `GET /api/v1/dashboard/films/occupancy`
+- `GET /api/v1/dashboard/films/distribution`
+- `GET /api/v1/dashboard/films/operational-risk`
+- `GET /api/v1/dashboard/notifications`
 
 ### Notifications
 
@@ -178,6 +211,12 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 
 - `GET /api/v1/settings`
 - `PATCH /api/v1/settings`
+
+### Support
+
+- `GET /api/v1/system/status`
+- `GET /api/v1/payments/config`
+- `GET /api/v1/cities`
 
 ## Query Support
 
@@ -195,12 +234,31 @@ Filter yang tersedia:
 - `/studios`: `cinema_id`, `studio_id`, `screen_type`
 - `/schedules`: `movie_id`, `cinema_id`, `studio_id`, `show_date`, `start_date`, `end_date`, `status`
 - `/tikets`: `schedule_id`, `movie_id`, `cinema_id`, `payment_type`, `seat_category`, `start_date`, `end_date`
+- `/tickets`: `schedule_id`, `movie_id`, `cinema_id`, `payment_type`, `seat_category`, `start_date`, `end_date`
 - `/movie`: `top10`, `city`, `cinema_id`, `start_date`, `end_date`
 - `/stats/summary`: `start_date`, `end_date`, `period`, `city`, `cinema_id`, `studio_id`, `compare`
 - `/stats/trends`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `movie_id`, `studio_id`
 - `/stats/occupancy`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `movie_id`, `studio_id`
 - `/stats/movie`: `city`, `cinema_id`, `rating_usia`, `start_date`, `end_date`
 - `/stats/cinema`: `city`, `cinema_id`, `start_date`, `end_date`
+- `/dashboard/executive`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`
+- `/dashboard/sales/overview`: `start_date`, `end_date`, `period`, `city`, `cinema_id`, `studio_id`
+- `/dashboard/sales/revenue-by-cinema`: `start_date`, `end_date`, `city`, `cinema_id`
+- `/dashboard/sales/revenue-by-movie`: `start_date`, `end_date`, `city`, `cinema_id`, `top_n`
+- `/dashboard/sales/time-slots`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/sales/trend`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/sales/payment`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `payment_type`
+- `/dashboard/sales/operational-risk`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/films/overview`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`
+- `/dashboard/films/performance`: `start_date`, `end_date`, `city`, `cinema_id`, `top_n`
+- `/dashboard/films/schedules`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/films/occupancy`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/films/distribution`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`
+- `/dashboard/films/operational-risk`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/notifications`: `status`, `severity`, `page`, `limit`
+- `/analytics/pricing-recommendation`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`, `top_n`
+- `/analytics/early-blockbuster`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `min_tickets`, `min_growth`
+- `/analytics/cannibalization`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `min_competitor_occupancy`, `max_impacted_occupancy`
 - `/notifications`: `status`, `severity`, `page`, `limit`
 
 ## Contoh Request
@@ -231,6 +289,24 @@ Summary dashboard:
 curl "http://localhost:8000/api/v1/stats/summary?compare=true"
 ```
 
+Endpoint test suite:
+
+```bash
+npm run test:endpoints
+```
+
+Pricing recommendation:
+
+```bash
+curl "http://localhost:8000/api/v1/analytics/pricing-recommendation"
+```
+
+Dashboard executive:
+
+```bash
+curl "http://localhost:8000/api/v1/dashboard/executive"
+```
+
 Cinema performance:
 
 ```bash
@@ -248,6 +324,8 @@ curl http://localhost:8000/api/v1/settings \
 
 - Endpoint `settings`, `notifications`, `alerts`, dan refresh-token state memakai penyimpanan file lokal di `src/data/`.
 - `GET /system/health` akan mengembalikan `503` bila backend tidak bisa menjangkau database.
+- `GET /tickets` adalah alias baru dari `GET /tikets` dengan nama field yang lebih umum untuk frontend.
+- Beberapa field tambahan yang belum ada di database saat ini dikirim sebagai fallback/mock, misalnya `tickets.status`, `schedules.actual_time`, `schedules.delay_minutes`, `cinemas.lat`, `cinemas.lng`, `payment.success_rate`, dan `payment.admin_fee`.
 - `GET /movies/:movie_id`, `GET /cinemas/:cinema_id`, `GET /studios/:studio_id`, `GET /schedules/:schedule_id`, dan `GET /tikets/:tiket_id` mengembalikan `404` bila data tidak ditemukan.
 - Endpoint analytics yang paling berat saat ini adalah `/cinemas`, `/stats/movie`, `/movie`, dan `/notifications`.
 
