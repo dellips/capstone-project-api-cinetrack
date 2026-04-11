@@ -6,6 +6,22 @@ import { validateFilters } from "../utils/validation.js";
 import { withCache } from "../utils/cache.js";
 import { config } from "../config.js";
 
+// Mengubah struktur tiket internal menjadi kontrak ticket yang lebih cocok untuk frontend.
+function mapTiketToTicket(ticket) {
+  return {
+    ticket_id: ticket.tiket_id,
+    schedule_id: ticket.schedule_id,
+    movie_id: ticket.movie_id,
+    cinema_id: ticket.cinema_id,
+    seat_category: ticket.seat_category,
+    final_price: ticket.final_price,
+    trans_time: ticket.trans_time,
+    payment_type: ticket.payment_type,
+    status: ticket.status || "success",
+    is_mock_status: true
+  };
+}
+
 // Mengambil seluruh master film dan mengubah genre menjadi array agar mudah dipakai frontend.
 export async function getAllMovies({
   search = null,
@@ -125,7 +141,10 @@ export async function getAllStudios({
       cinema_id: studio.cinema_id,
       studio_name: studio.studio_name,
       total_capacity: Number(studio.total_capacity || 0),
-      screen_type: studio.screen_type
+      capacity: Number(studio.total_capacity || 0),
+      screen_type: studio.screen_type,
+      format: studio.screen_type,
+      type: studio.screen_type
     })),
     meta: {
       filters: {
@@ -233,7 +252,10 @@ export async function getSchedules({
       show_date: schedule.show_date,
       start_time: schedule.start_time,
       price: Number(schedule.price || 0),
-      status: schedule.status
+      status: schedule.status,
+      actual_time: null,
+      delay_minutes: null,
+      is_mock_timing: true
     })),
     meta: {
       filters: {
@@ -344,7 +366,9 @@ export async function getTikets({
       seat_category: tiket.seat_category,
       final_price: Number(tiket.final_price || 0),
       trans_time: tiket.trans_time,
-      payment_type: tiket.payment_type
+      payment_type: tiket.payment_type,
+      status: "success",
+      is_mock_status: true
     })),
     meta: {
       filters: {
@@ -480,6 +504,7 @@ export async function getStudioDetail(studioId) {
         cinema_id: row.cinema_id,
         studio_name: row.studio_name,
         total_capacity: Number(row.total_capacity || 0),
+        capacity: Number(row.total_capacity || 0),
         screen_type: row.screen_type,
         total_schedules: Number(row.total_schedules || 0),
         total_tickets: Number(row.total_tickets || 0)
@@ -538,6 +563,9 @@ export async function getScheduleDetail(scheduleId) {
         start_time: row.start_time,
         price: Number(row.price || 0),
         status: row.status,
+        actual_time: null,
+        delay_minutes: null,
+        is_mock_timing: true,
         tickets_sold: Number(row.tickets_sold || 0),
         revenue: Number(row.revenue || 0)
       };
@@ -585,8 +613,25 @@ export async function getTiketDetail(tiketId) {
         seat_category: row.seat_category,
         final_price: Number(row.final_price || 0),
         trans_time: row.trans_time,
-        payment_type: row.payment_type
+        payment_type: row.payment_type,
+        status: "success",
+        is_mock_status: true
       };
     }
   );
+}
+
+// Menyediakan alias /tickets dengan nama field yang lebih umum untuk frontend baru.
+export async function getTickets(filters = {}) {
+  const result = await getTikets(filters);
+
+  return {
+    data: result.data.map(mapTiketToTicket),
+    meta: result.meta
+  };
+}
+
+// Menyediakan detail ticket tunggal tanpa mengubah endpoint /tikets yang lama.
+export async function getTicketDetail(ticketId) {
+  return mapTiketToTicket(await getTiketDetail(ticketId));
 }

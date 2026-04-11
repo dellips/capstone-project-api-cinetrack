@@ -139,6 +139,10 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
     cinema_name: row.cinema_name,
     city: row.city,
     address: row.address,
+    status: Number(row.total_tickets || 0) > 0 ? "active" : "inactive",
+    lat: null,
+    lng: null,
+    is_mock_location: true,
     metrics: {
       total_tickets: Number(row.total_tickets || 0),
       total_revenue: Number(row.total_revenue || 0),
@@ -238,6 +242,10 @@ export async function getCinemaDetail(cinemaId) {
         cinema_name: row.cinema_name,
         city: row.city,
         address: row.address,
+        status: Number(row.total_tickets || 0) > 0 ? "active" : "inactive",
+        lat: null,
+        lng: null,
+        is_mock_location: true,
         total_studios: Number(row.total_studios || 0),
         total_schedules: Number(row.total_schedules || 0),
         total_tickets: Number(row.total_tickets || 0)

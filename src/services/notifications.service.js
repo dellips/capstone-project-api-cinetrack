@@ -51,14 +51,14 @@ async function buildNotifications() {
     notification_id: "occupancy-level",
     title: "Occupancy level",
     message:
-      summary.data.occupancy < 25
+      summary.data.avg_occupancy < 25
         ? "Overall occupancy is low and may need attention."
         : "Overall occupancy is within an acceptable range.",
-    severity: summary.data.occupancy < 20 ? "warning" : "info",
+    severity: summary.data.avg_occupancy < 20 ? "warning" : "info",
     status: "unread",
     created_at: new Date().toISOString(),
     context: {
-      occupancy: summary.data.occupancy
+      occupancy: summary.data.avg_occupancy
     }
   });
 
