@@ -23,6 +23,15 @@ function roundNumber(value, digits = 2) {
   return Number(Number(value || 0).toFixed(digits));
 }
 
+// Menormalkan angka ke rentang 0..1 agar skor gabungan tetap seimbang.
+function normalizeValue(value, minValue, maxValue) {
+  if (maxValue === minValue) {
+    return value > 0 ? 1 : 0;
+  }
+
+  return (value - minValue) / (maxValue - minValue);
+}
+
 // Mengisi fallback admin fee bila payment config asli belum tersedia di database.
 function getMockAdminFee(paymentType) {
   const normalized = String(paymentType || "unknown").toLowerCase().replace(/\s+/g, "_");
@@ -458,6 +467,89 @@ export async function getSalesRevenueByCinema({
   );
 }
 
+// Menyediakan ranking revenue per studio agar efisiensi layar bisa dibandingkan langsung.
+export async function getSalesRevenueByStudio({
+  start_date,
+  end_date,
+  city = null,
+  cinema_id = null,
+  studio_id = null
+} = {}) {
+  const dateRange = resolveDateRange(start_date, end_date, "daily");
+
+  await validateFilters({
+    city,
+    cinemaId: cinema_id,
+    studioId: studio_id
+  });
+
+  return withCache(
+    "dashboard-sales-revenue-by-studio",
+    { start_date, end_date, city, cinema_id, studio_id },
+    config.cacheTtlSeconds,
+    async () => {
+      const scope = buildScopeFilters({ city, cinema_id, studio_id });
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
+      const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
+
+      const result = await query(
+        `SELECT
+          st.studio_id,
+          st.studio_name,
+          st.cinema_id,
+          c.cinema_name,
+          c.city,
+          COUNT(DISTINCT s.schedule_id)::int AS total_shows,
+          COUNT(t.tiket_id)::int AS total_tickets,
+          COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
+          COALESCE(SUM(CASE WHEN s.schedule_id IS NOT NULL THEN st.total_capacity ELSE 0 END), 0)::int AS total_capacity
+        FROM studio st
+        JOIN cinema c ON st.cinema_id = c.cinema_id
+        LEFT JOIN schedules s ON st.studio_id = s.studio_id
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+        ${whereClause}
+        GROUP BY st.studio_id, st.studio_name, st.cinema_id, c.cinema_name, c.city
+        ORDER BY COALESCE(SUM(t.final_price), 0) DESC, COUNT(t.tiket_id) DESC, st.studio_name ASC`,
+        scope.params
+      );
+
+      const breakdown = result.rows.map((row, index) => {
+        const totalShows = Number(row.total_shows || 0);
+        const totalTickets = Number(row.total_tickets || 0);
+        const totalRevenue = Number(row.total_revenue || 0);
+        const totalCapacity = Number(row.total_capacity || 0);
+
+        return {
+          rank: index + 1,
+          studio_id: row.studio_id,
+          studio_name: row.studio_name,
+          cinema_id: row.cinema_id,
+          cinema_name: row.cinema_name,
+          city: row.city,
+          total_shows: totalShows,
+          total_tickets: totalTickets,
+          total_revenue: roundNumber(totalRevenue),
+          avg_revenue_per_show: totalShows > 0 ? roundNumber(totalRevenue / totalShows) : 0,
+          occupancy: totalCapacity > 0 ? roundNumber((totalTickets * 100) / totalCapacity) : 0
+        };
+      });
+
+      return {
+        summary: {
+          total_studios: breakdown.length,
+          active_studios: breakdown.filter((item) => item.total_shows > 0).length,
+          total_revenue: roundNumber(
+            breakdown.reduce((total, item) => total + Number(item.total_revenue || 0), 0)
+          )
+        },
+        top_performing_studio: breakdown[0] || null,
+        lowest_performing_studio: breakdown[breakdown.length - 1] || null,
+        breakdown
+      };
+    }
+  );
+}
+
 // Menyediakan ranking revenue per film berikut kontribusinya ke total penjualan.
 export async function getSalesRevenueByMovie({
   start_date,
@@ -655,6 +747,101 @@ export async function getSalesTrend({
           total_tickets: currentTickets
         },
         forecast: buildForecast(breakdown, group_by),
+        breakdown
+      };
+    }
+  );
+}
+
+// Membandingkan pola weekday dan weekend agar strategi promo dan pricing lebih tepat.
+export async function getSalesWeekendVsWeekday({
+  start_date,
+  end_date,
+  city = null,
+  cinema_id = null,
+  studio_id = null,
+  movie_id = null
+} = {}) {
+  const dateRange = resolveDateRange(start_date, end_date, "daily");
+
+  await validateFilters({
+    city,
+    cinemaId: cinema_id,
+    studioId: studio_id
+  });
+
+  return withCache(
+    "dashboard-sales-weekend-vs-weekday",
+    { start_date, end_date, city, cinema_id, studio_id, movie_id },
+    config.cacheTtlSeconds,
+    async () => {
+      const scope = buildScopeFilters({ city, cinema_id, studio_id, movie_id });
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
+      const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
+
+      const result = await query(
+        `WITH per_schedule AS (
+          SELECT
+            CASE
+              WHEN EXTRACT(DOW FROM CAST(s.show_date AS DATE)) IN (0, 5, 6) THEN 'weekend'
+              ELSE 'weekday'
+            END AS day_type,
+            s.schedule_id,
+            st.total_capacity,
+            COUNT(t.tiket_id)::int AS total_tickets,
+            COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue
+          FROM schedules s
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+          ${whereClause}
+          GROUP BY day_type, s.schedule_id, st.total_capacity
+        )
+        SELECT
+          day_type,
+          COUNT(schedule_id)::int AS total_shows,
+          SUM(total_tickets)::int AS total_tickets,
+          SUM(total_revenue)::float8 AS total_revenue,
+          SUM(total_capacity)::int AS total_capacity
+        FROM per_schedule
+        GROUP BY day_type
+        ORDER BY day_type`,
+        scope.params
+      );
+
+      const breakdown = ["weekday", "weekend"].map((dayType) => {
+        const row = result.rows.find((item) => item.day_type === dayType) || {};
+        const totalShows = Number(row.total_shows || 0);
+        const totalTickets = Number(row.total_tickets || 0);
+        const totalRevenue = Number(row.total_revenue || 0);
+        const totalCapacity = Number(row.total_capacity || 0);
+
+        return {
+          day_type: dayType,
+          total_shows: totalShows,
+          total_tickets: totalTickets,
+          total_revenue: roundNumber(totalRevenue),
+          avg_revenue_per_show: totalShows > 0 ? roundNumber(totalRevenue / totalShows) : 0,
+          avg_tickets_per_show: totalShows > 0 ? roundNumber(totalTickets / totalShows) : 0,
+          occupancy: totalCapacity > 0 ? roundNumber((totalTickets * 100) / totalCapacity) : 0
+        };
+      });
+
+      const weekday = breakdown.find((item) => item.day_type === "weekday");
+      const weekend = breakdown.find((item) => item.day_type === "weekend");
+      const winner =
+        Number(weekend?.total_revenue || 0) >= Number(weekday?.total_revenue || 0)
+          ? "weekend"
+          : "weekday";
+
+      return {
+        summary: {
+          winning_period: winner,
+          revenue_gap: roundNumber(
+            Math.abs(Number(weekend?.total_revenue || 0) - Number(weekday?.total_revenue || 0))
+          ),
+          ticket_gap: Math.abs(Number(weekend?.total_tickets || 0) - Number(weekday?.total_tickets || 0))
+        },
         breakdown
       };
     }
@@ -1411,6 +1598,114 @@ export async function getPricingRecommendations(filters = {}) {
           is_rule_based: true
         },
         recommendations: prioritized.slice(0, Number(filters.top_n || 10))
+      };
+    }
+  );
+}
+
+// Menyusun slot iklan terbaik berbasis reach, revenue, dan occupancy sebagai proxy.
+export async function getBestAdSlots({
+  start_date,
+  end_date,
+  city = null,
+  cinema_id = null,
+  studio_id = null,
+  movie_id = null,
+  top_n = 10
+} = {}) {
+  const dateRange = resolveDateRange(start_date, end_date, "daily");
+
+  await validateFilters({
+    city,
+    cinemaId: cinema_id,
+    studioId: studio_id
+  });
+
+  return withCache(
+    "analytics-best-ad-slot",
+    { start_date, end_date, city, cinema_id, studio_id, movie_id, top_n: String(top_n) },
+    config.cacheTtlSeconds,
+    async () => {
+      const scope = buildScopeFilters({ city, cinema_id, studio_id, movie_id });
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
+      const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
+
+      const result = await query(
+        `SELECT
+          s.movie_id,
+          m.title,
+          m.genre,
+          LPAD(EXTRACT(HOUR FROM CAST(s.start_time AS TIME))::int::text, 2, '0') || ':00' AS time_slot,
+          COUNT(DISTINCT s.schedule_id)::int AS total_shows,
+          COUNT(t.tiket_id)::int AS audience_size,
+          COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
+          COALESCE(SUM(CASE WHEN s.schedule_id IS NOT NULL THEN st.total_capacity ELSE 0 END), 0)::int AS total_capacity
+        FROM schedules s
+        JOIN movies m ON s.movie_id = m.movie_id
+        JOIN studio st ON s.studio_id = st.studio_id
+        JOIN cinema c ON st.cinema_id = c.cinema_id
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+        ${whereClause}
+        GROUP BY s.movie_id, m.title, m.genre, time_slot
+        ORDER BY COUNT(t.tiket_id) DESC, COALESCE(SUM(t.final_price), 0) DESC, m.title ASC`,
+        scope.params
+      );
+
+      const baseRows = result.rows.map((row) => ({
+        movie_id: row.movie_id,
+        title: row.title,
+        genre: row.genre ? row.genre.split(",").map((item) => item.trim()) : [],
+        time_slot: row.time_slot,
+        total_shows: Number(row.total_shows || 0),
+        audience_size: Number(row.audience_size || 0),
+        total_revenue: Number(row.total_revenue || 0),
+        occupancy:
+          Number(row.total_capacity || 0) > 0
+            ? roundNumber((Number(row.audience_size || 0) * 100) / Number(row.total_capacity || 0))
+            : 0
+      }));
+
+      const maxAudience = Math.max(...baseRows.map((item) => item.audience_size), 0);
+      const minAudience = Math.min(...baseRows.map((item) => item.audience_size), maxAudience);
+      const maxRevenue = Math.max(...baseRows.map((item) => item.total_revenue), 0);
+      const minRevenue = Math.min(...baseRows.map((item) => item.total_revenue), maxRevenue);
+      const maxOccupancy = Math.max(...baseRows.map((item) => item.occupancy), 0);
+      const minOccupancy = Math.min(...baseRows.map((item) => item.occupancy), maxOccupancy);
+
+      const breakdown = baseRows
+        .map((item) => {
+          const normalizedAudience = normalizeValue(item.audience_size, minAudience, maxAudience);
+          const normalizedRevenue = normalizeValue(item.total_revenue, minRevenue, maxRevenue);
+          const normalizedOccupancy = normalizeValue(item.occupancy, minOccupancy, maxOccupancy);
+          const adScore =
+            (normalizedAudience * 0.5) + (normalizedRevenue * 0.3) + (normalizedOccupancy * 0.2);
+
+          return {
+            movie_id: item.movie_id,
+            title: item.title,
+            genre: item.genre,
+            time_slot: item.time_slot,
+            total_shows: item.total_shows,
+            audience_size: item.audience_size,
+            total_revenue: roundNumber(item.total_revenue),
+            revenue_per_show: item.total_shows > 0 ? roundNumber(item.total_revenue / item.total_shows) : 0,
+            occupancy: item.occupancy,
+            ad_score: roundNumber(adScore * 100),
+            is_rule_based: true,
+            is_proxy_metric: true
+          };
+        })
+        .sort((left, right) => right.ad_score - left.ad_score)
+        .slice(0, Number(top_n || 10));
+
+      return {
+        summary: {
+          total_candidates: baseRows.length,
+          top_slot: breakdown[0] || null,
+          scoring_formula: "0.5*audience + 0.3*revenue + 0.2*occupancy",
+          is_proxy_metric: true
+        },
+        breakdown
       };
     }
   );

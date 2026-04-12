@@ -207,6 +207,9 @@ export const dashboardRouteSchemas = {
   salesRevenueByCinema: {
     querystring: buildStatsQuerySchema({})
   },
+  salesRevenueByStudio: {
+    querystring: buildStatsQuerySchema({})
+  },
   salesRevenueByMovie: {
     querystring: buildStatsQuerySchema({
       top_n: positiveInteger
@@ -219,6 +222,9 @@ export const dashboardRouteSchemas = {
     querystring: buildStatsQuerySchema({
       group_by: { type: "string", enum: ["daily", "monthly"] }
     })
+  },
+  salesWeekendVsWeekday: {
+    querystring: buildStatsQuerySchema({})
   },
   salesPayment: {
     querystring: buildStatsQuerySchema({
@@ -249,6 +255,11 @@ export const dashboardRouteSchemas = {
     querystring: buildStatsQuerySchema({})
   },
   pricingRecommendation: {
+    querystring: buildStatsQuerySchema({
+      top_n: positiveInteger
+    })
+  },
+  bestAdSlot: {
     querystring: buildStatsQuerySchema({
       top_n: positiveInteger
     })

@@ -367,6 +367,11 @@ async function main() {
   });
 
   await runCase(app, recorder, {
+    name: "Dashboard Sales Revenue by Studio",
+    url: "/api/v1/dashboard/sales/revenue-by-studio"
+  });
+
+  await runCase(app, recorder, {
     name: "Dashboard Sales Revenue by Movie",
     url: "/api/v1/dashboard/sales/revenue-by-movie"
   });
@@ -379,6 +384,11 @@ async function main() {
   await runCase(app, recorder, {
     name: "Dashboard Sales Trend",
     url: "/api/v1/dashboard/sales/trend"
+  });
+
+  await runCase(app, recorder, {
+    name: "Dashboard Sales Weekend vs Weekday",
+    url: "/api/v1/dashboard/sales/weekend-vs-weekday"
   });
 
   await runCase(app, recorder, {
@@ -461,6 +471,11 @@ async function main() {
   await runCase(app, recorder, {
     name: "Analytics Pricing Recommendation",
     url: "/api/v1/analytics/pricing-recommendation"
+  });
+
+  await runCase(app, recorder, {
+    name: "Analytics Best Ad Slot",
+    url: "/api/v1/analytics/best-ad-slot"
   });
 
   await runCase(app, recorder, {

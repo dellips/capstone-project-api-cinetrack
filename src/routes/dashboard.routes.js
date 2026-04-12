@@ -1,5 +1,6 @@
 import {
   getCannibalization,
+  getBestAdSlots,
   getCities,
   getDashboardNotifications,
   getEarlyBlockbuster,
@@ -16,8 +17,10 @@ import {
   getSalesOverview,
   getSalesPayment,
   getSalesRevenueByCinema,
+  getSalesRevenueByStudio,
   getSalesRevenueByMovie,
   getSalesTimeSlots,
+  getSalesWeekendVsWeekday,
   getSalesTrend
 } from "../services/dashboard.service.js";
 import { dashboardRouteSchemas } from "../schemas.js";
@@ -46,6 +49,14 @@ export default async function dashboardRoutes(fastify) {
   );
 
   fastify.get(
+    "/dashboard/sales/revenue-by-studio",
+    { schema: dashboardRouteSchemas.salesRevenueByStudio },
+    async (request) => successResponse(await getSalesRevenueByStudio(request.query), {
+      filters: request.query
+    })
+  );
+
+  fastify.get(
     "/dashboard/sales/revenue-by-movie",
     { schema: dashboardRouteSchemas.salesRevenueByMovie },
     async (request) => successResponse(await getSalesRevenueByMovie(request.query), {
@@ -61,6 +72,14 @@ export default async function dashboardRoutes(fastify) {
 
   fastify.get("/dashboard/sales/trend", { schema: dashboardRouteSchemas.salesTrend }, async (request) =>
     successResponse(await getSalesTrend(request.query), {
+      filters: request.query
+    })
+  );
+
+  fastify.get(
+    "/dashboard/sales/weekend-vs-weekday",
+    { schema: dashboardRouteSchemas.salesWeekendVsWeekday },
+    async (request) => successResponse(await getSalesWeekendVsWeekday(request.query), {
       filters: request.query
     })
   );
@@ -134,6 +153,14 @@ export default async function dashboardRoutes(fastify) {
     "/analytics/pricing-recommendation",
     { schema: dashboardRouteSchemas.pricingRecommendation },
     async (request) => successResponse(await getPricingRecommendations(request.query), {
+      filters: request.query
+    })
+  );
+
+  fastify.get(
+    "/analytics/best-ad-slot",
+    { schema: dashboardRouteSchemas.bestAdSlot },
+    async (request) => successResponse(await getBestAdSlots(request.query), {
       filters: request.query
     })
   );

@@ -3260,6 +3260,239 @@
           }
         }
       }
+    },
+    "/dashboard/sales/revenue-by-studio": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get revenue breakdown by studio",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revenue by studio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_studios": 12,
+                      "active_studios": 12,
+                      "total_revenue": 318897536
+                    },
+                    "top_performing_studio": {
+                      "rank": 1,
+                      "studio_id": "ST-C001-1",
+                      "studio_name": "Studio 1",
+                      "cinema_id": "C001",
+                      "cinema_name": "Semarang Mall 1 XXI",
+                      "city": "Semarang",
+                      "total_shows": 24,
+                      "total_tickets": 1520,
+                      "total_revenue": 71250000,
+                      "avg_revenue_per_show": 2968750,
+                      "occupancy": 53.1
+                    },
+                    "lowest_performing_studio": null,
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/sales/weekend-vs-weekday": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Compare weekend and weekday sales performance",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weekend vs weekday performance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "winning_period": "weekend",
+                      "revenue_gap": 28500000,
+                      "ticket_gap": 530
+                    },
+                    "breakdown": [
+                      {
+                        "day_type": "weekday",
+                        "total_shows": 80,
+                        "total_tickets": 4200,
+                        "total_revenue": 172400000,
+                        "avg_revenue_per_show": 2155000,
+                        "avg_tickets_per_show": 52.5,
+                        "occupancy": 31.8
+                      },
+                      {
+                        "day_type": "weekend",
+                        "total_shows": 40,
+                        "total_tickets": 4730,
+                        "total_revenue": 200900000,
+                        "avg_revenue_per_show": 5022500,
+                        "avg_tickets_per_show": 118.25,
+                        "occupancy": 48.2
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/best-ad-slot": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Rank best ad slot candidates by audience proxy",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateParam"
+          },
+          {
+            "$ref": "#/components/parameters/CityParam"
+          },
+          {
+            "$ref": "#/components/parameters/CinemaIdQueryParam"
+          },
+          {
+            "name": "studio_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "movie_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "top_n",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Best ad slot analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": {
+                      "total_candidates": 20,
+                      "top_slot": {
+                        "movie_id": "M005",
+                        "title": "Siksa Kubur",
+                        "genre": [
+                          "Horror"
+                        ],
+                        "time_slot": "18:00",
+                        "total_shows": 14,
+                        "audience_size": 1090,
+                        "total_revenue": 57575000,
+                        "revenue_per_show": 4112500,
+                        "occupancy": 66.7,
+                        "ad_score": 100,
+                        "is_rule_based": true,
+                        "is_proxy_metric": true
+                      },
+                      "scoring_formula": "0.5*audience + 0.3*revenue + 0.2*occupancy",
+                      "is_proxy_metric": true
+                    },
+                    "breakdown": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

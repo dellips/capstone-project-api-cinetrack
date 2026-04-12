@@ -1,11 +1,11 @@
 # Endpoint Test Results
 
-Generated at: 2026-04-10T08:36:37.910Z
+Generated at: 2026-04-12T01:22:05.552Z
 
 ## Summary
 
-- Total: 56
-- Passed: 56
+- Total: 59
+- Passed: 59
 - Failed: 0
 
 ## Sample IDs
@@ -47,9 +47,11 @@ Generated at: 2026-04-10T08:36:37.910Z
 - [PASS] GET /api/v1/dashboard/executive -> 200
 - [PASS] GET /api/v1/dashboard/sales/overview -> 200
 - [PASS] GET /api/v1/dashboard/sales/revenue-by-cinema -> 200
+- [PASS] GET /api/v1/dashboard/sales/revenue-by-studio -> 200
 - [PASS] GET /api/v1/dashboard/sales/revenue-by-movie -> 200
 - [PASS] GET /api/v1/dashboard/sales/time-slots -> 200
 - [PASS] GET /api/v1/dashboard/sales/trend -> 200
+- [PASS] GET /api/v1/dashboard/sales/weekend-vs-weekday -> 200
 - [PASS] GET /api/v1/dashboard/sales/payment -> 200
 - [PASS] GET /api/v1/dashboard/sales/operational-risk -> 200
 - [PASS] GET /api/v1/dashboard/films/overview -> 200
@@ -66,6 +68,7 @@ Generated at: 2026-04-10T08:36:37.910Z
 - [PASS] GET /api/v1/system/health -> 200
 - [PASS] GET /api/v1/system/status -> 200
 - [PASS] GET /api/v1/analytics/pricing-recommendation -> 200
+- [PASS] GET /api/v1/analytics/best-ad-slot -> 200
 - [PASS] GET /api/v1/analytics/early-blockbuster -> 200
 - [PASS] GET /api/v1/analytics/cannibalization -> 200
 - [PASS] GET /api/v1/settings -> 200

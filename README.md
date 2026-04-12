@@ -178,6 +178,7 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 - `GET /api/v1/stats/movie`
 - `GET /api/v1/stats/cinema`
 - `GET /api/v1/analytics/pricing-recommendation`
+- `GET /api/v1/analytics/best-ad-slot`
 - `GET /api/v1/analytics/early-blockbuster`
 - `GET /api/v1/analytics/cannibalization`
 
@@ -186,9 +187,11 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 - `GET /api/v1/dashboard/executive`
 - `GET /api/v1/dashboard/sales/overview`
 - `GET /api/v1/dashboard/sales/revenue-by-cinema`
+- `GET /api/v1/dashboard/sales/revenue-by-studio`
 - `GET /api/v1/dashboard/sales/revenue-by-movie`
 - `GET /api/v1/dashboard/sales/time-slots`
 - `GET /api/v1/dashboard/sales/trend`
+- `GET /api/v1/dashboard/sales/weekend-vs-weekday`
 - `GET /api/v1/dashboard/sales/payment`
 - `GET /api/v1/dashboard/sales/operational-risk`
 - `GET /api/v1/dashboard/films/overview`
@@ -244,9 +247,11 @@ Filter yang tersedia:
 - `/dashboard/executive`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`
 - `/dashboard/sales/overview`: `start_date`, `end_date`, `period`, `city`, `cinema_id`, `studio_id`
 - `/dashboard/sales/revenue-by-cinema`: `start_date`, `end_date`, `city`, `cinema_id`
+- `/dashboard/sales/revenue-by-studio`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`
 - `/dashboard/sales/revenue-by-movie`: `start_date`, `end_date`, `city`, `cinema_id`, `top_n`
 - `/dashboard/sales/time-slots`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
 - `/dashboard/sales/trend`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `studio_id`, `movie_id`
+- `/dashboard/sales/weekend-vs-weekday`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
 - `/dashboard/sales/payment`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `payment_type`
 - `/dashboard/sales/operational-risk`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
 - `/dashboard/films/overview`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`
@@ -257,6 +262,7 @@ Filter yang tersedia:
 - `/dashboard/films/operational-risk`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`
 - `/dashboard/notifications`: `status`, `severity`, `page`, `limit`
 - `/analytics/pricing-recommendation`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`, `top_n`
+- `/analytics/best-ad-slot`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `movie_id`, `top_n`
 - `/analytics/early-blockbuster`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `min_tickets`, `min_growth`
 - `/analytics/cannibalization`: `start_date`, `end_date`, `city`, `cinema_id`, `studio_id`, `min_competitor_occupancy`, `max_impacted_occupancy`
 - `/notifications`: `status`, `severity`, `page`, `limit`
