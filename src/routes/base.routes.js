@@ -62,7 +62,7 @@ export default async function baseRoutes(fastify) {
     successResponse(await getTicketDetail(request.params.ticket_id))
   );
 
-  fastify.get("/movie", { schema: baseRouteSchemas.movieRankings }, async (request) => {
+  fastify.get("/movies/rankings", { schema: baseRouteSchemas.movieRankings }, async (request) => {
     const filters = {
       top10: request.query.top10 ?? false,
       city: request.query.city ?? null,
