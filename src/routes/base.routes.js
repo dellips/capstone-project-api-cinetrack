@@ -4,6 +4,8 @@ import {
   getScheduleDetail,
   getSchedules,
   getStudioDetail,
+  getTicketDetail,
+  getTickets,
   getTiketDetail,
   getTikets,
   getMoviesBySales,
@@ -51,7 +53,16 @@ export default async function baseRoutes(fastify) {
     successResponse(await getTiketDetail(request.params.tiket_id))
   );
 
-  fastify.get("/movies/rankings", { schema: baseRouteSchemas.movieRankings }, async (request) => {
+  fastify.get("/tickets", { schema: baseRouteSchemas.tickets }, async (request) => {
+    const result = await getTickets(request.query);
+    return successResponse(result.data, result.meta);
+  });
+
+  fastify.get("/tickets/:ticket_id", { schema: baseRouteSchemas.ticketDetail }, async (request) =>
+    successResponse(await getTicketDetail(request.params.ticket_id))
+  );
+
+  fastify.get("/movie", { schema: baseRouteSchemas.movieRankings }, async (request) => {
     const filters = {
       top10: request.query.top10 ?? false,
       city: request.query.city ?? null,

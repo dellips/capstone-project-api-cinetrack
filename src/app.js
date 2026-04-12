@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import authRoutes from "./routes/auth.routes.js";
 import baseRoutes from "./routes/base.routes.js";
 import cinemaRoutes from "./routes/cinemas.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import docsRoutes from "./routes/docs.routes.js";
 import movieRoutes from "./routes/movies.routes.js";
 import notificationRoutes from "./routes/notifications.routes.js";
@@ -18,6 +19,7 @@ const routePlugins = [
   baseRoutes,
   authRoutes,
   cinemaRoutes,
+  dashboardRoutes,
   docsRoutes,
   movieRoutes,
   notificationRoutes,
