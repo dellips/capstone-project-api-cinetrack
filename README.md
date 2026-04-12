@@ -171,7 +171,7 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 
 ### Analytics
 
-- `GET /api/v1/movie`
+- `GET /api/v1/movies/rankings`
 - `GET /api/v1/stats/summary`
 - `GET /api/v1/stats/trends`
 - `GET /api/v1/stats/occupancy`
@@ -280,7 +280,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 Ranking film:
 
 ```bash
-curl "http://localhost:8000/api/v1/movie?top10=true&start_date=2026-04-01&end_date=2026-04-07"
+curl "http://localhost:8000/api/v1/movies/rankings?top10=true&start_date=2026-04-01&end_date=2026-04-07"
 ```
 
 Summary dashboard:
@@ -327,7 +327,7 @@ curl http://localhost:8000/api/v1/settings \
 - `GET /tickets` adalah alias baru dari `GET /tikets` dengan nama field yang lebih umum untuk frontend.
 - Beberapa field tambahan yang belum ada di database saat ini dikirim sebagai fallback/mock, misalnya `tickets.status`, `schedules.actual_time`, `schedules.delay_minutes`, `cinemas.lat`, `cinemas.lng`, `payment.success_rate`, dan `payment.admin_fee`.
 - `GET /movies/:movie_id`, `GET /cinemas/:cinema_id`, `GET /studios/:studio_id`, `GET /schedules/:schedule_id`, dan `GET /tikets/:tiket_id` mengembalikan `404` bila data tidak ditemukan.
-- Endpoint analytics yang paling berat saat ini adalah `/cinemas`, `/stats/movie`, `/movie`, dan `/notifications`.
+- Endpoint analytics yang paling berat saat ini adalah `/cinemas`, `/stats/movie`, `/movies/rankings`, dan `/notifications`.
 
 ## Admin Dashboard Login
 

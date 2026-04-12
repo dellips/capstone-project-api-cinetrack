@@ -501,7 +501,7 @@
         }
       }
     },
-    "/movie": {
+    "/movies/rankings": {
       "get": {
         "tags": [
           "Analytics"
