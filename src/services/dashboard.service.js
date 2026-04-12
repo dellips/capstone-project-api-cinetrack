@@ -764,6 +764,32 @@ export async function getSalesTrend({
         scope.params
       );
 
+      const yearlyScope = buildScopeFilters({ city, cinema_id, studio_id, movie_id });
+      const now = new Date();
+      const lastYear = new Date();
+      lastYear.setFullYear(now.getFullYear() - 1);
+      
+      yearlyScope.params.push(lastYear.toISOString());
+      yearlyScope.params.push(now.toISOString());
+      yearlyScope.conditions.push(`t.trans_time::timestamp BETWEEN $${yearlyScope.params.length - 1} AND $${yearlyScope.params.length}`);
+      
+      const yearlyWhereClause = yearlyScope.conditions.length ? `WHERE ${yearlyScope.conditions.join(" AND ")}` : "";
+
+      const yearlyResult = await query(
+        `SELECT
+          TO_CHAR(DATE_TRUNC('month', t.trans_time::timestamp), 'Mon') AS month,
+          EXTRACT(MONTH FROM t.trans_time) as month_num,
+          COALESCE(SUM(t.final_price), 0)::float8 AS revenue
+        FROM tiket t
+        JOIN schedules s ON t.schedule_id = s.schedule_id
+        JOIN studio st ON s.studio_id = st.studio_id
+        JOIN cinema c ON st.cinema_id = c.cinema_id
+        ${yearlyWhereClause}
+        GROUP BY month, month_num
+        ORDER BY month_num`,
+        yearlyScope.params
+      );
+
       const breakdown = buildMovingAverageSeries(
         result.rows.map((row) => ({
           time_group: row.time_group,
@@ -771,6 +797,11 @@ export async function getSalesTrend({
           revenue: roundNumber(row.revenue)
         }))
       );
+
+      const yearlyBreakdown = yearlyResult.rows.map(row => ({
+        month: row.month,
+        revenue: roundNumber(row.revenue)
+      }));
 
       const currentRevenue = breakdown.reduce((total, item) => total + Number(item.revenue || 0), 0);
       const currentTickets = breakdown.reduce((total, item) => total + Number(item.total_tickets || 0), 0);
@@ -782,6 +813,7 @@ export async function getSalesTrend({
           total_tickets: currentTickets
         },
         forecast: buildForecast(breakdown, group_by),
+        yearly_breakdown: yearlyBreakdown,
         breakdown
       };
     }
@@ -1149,6 +1181,10 @@ export async function getFilmsPerformance({
           title: item.title,
           total_tickets: item.tickets_sold,
           total_revenue: roundNumber(item.revenue),
+          genre: item.genre?.[0] || "Unknown",
+          rating: item.rating_usia || "SU",
+          duration: item.duration_min || 0,
+          seat_distribution: item.seat_distribution || { Regular: 0, VIP: 0, Sweetbox: 0 },
           blockbuster_score: roundNumber(
             ((item.tickets_sold / maxTickets) * 0.6) + ((Number(item.revenue || 0) / maxRevenue) * 0.4)
           )
