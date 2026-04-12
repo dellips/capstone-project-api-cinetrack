@@ -1,10 +1,14 @@
 import { query } from "../db.js";
-import { resolveOptionalDateRange } from "../utils/date.js";
+import { formatDateOnly, resolveOptionalDateRange } from "../utils/date.js";
 import { createHttpError } from "../utils/http-error.js";
 import { buildPaginationMeta, resolvePagination } from "../utils/pagination.js";
 import { validateFilters } from "../utils/validation.js";
 import { withCache } from "../utils/cache.js";
 import { config } from "../config.js";
+
+function roundMetric(value, digits = 2) {
+  return Number(Number(value || 0).toFixed(digits));
+}
 
 // Menyusun filter bioskop agar list, stats, dan performance memakai logika yang sama.
 function buildCinemaFilters({ city = null, cinema_id = null } = {}) {
@@ -36,12 +40,10 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
 
   const dateRange = resolveOptionalDateRange(start_date, end_date);
   const { params, whereClause } = buildCinemaFilters({ city, cinema_id });
-  let ticketDateFilter = "";
   let scheduleDateFilter = "";
 
   if (dateRange) {
-    params.push(dateRange.startDate.toISOString(), dateRange.endDate.toISOString());
-    ticketDateFilter = `AND t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`;
+    params.push(formatDateOnly(dateRange.startDate), formatDateOnly(dateRange.endDate));
     scheduleDateFilter =
       `AND CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`;
   }
@@ -69,7 +71,7 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         FROM filtered_cinemas fc
         LEFT JOIN studio st ON fc.cinema_id = st.cinema_id
         LEFT JOIN schedules s ON st.studio_id = s.studio_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
         WHERE 1 = 1 ${scheduleDateFilter}
         GROUP BY fc.cinema_id, fc.cinema_name, fc.city, fc.address
       ),
@@ -87,7 +89,7 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         JOIN studio st ON fc.cinema_id = st.cinema_id
         JOIN schedules s ON st.studio_id = s.studio_id
         JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
         WHERE 1 = 1 ${scheduleDateFilter}
         GROUP BY fc.cinema_id, m.movie_id, m.title
       ),
@@ -104,10 +106,20 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         JOIN studio st ON fc.cinema_id = st.cinema_id
         JOIN schedules s ON st.studio_id = s.studio_id
         JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
         CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
         WHERE TRIM(genre_item) <> '' ${scheduleDateFilter}
         GROUP BY fc.cinema_id, TRIM(genre_item)
+      ),
+      cinema_schedule_capacity AS (
+        SELECT
+          fc.cinema_id,
+          COALESCE(SUM(st.total_capacity), 0)::bigint AS total_capacity
+        FROM filtered_cinemas fc
+        JOIN studio st ON fc.cinema_id = st.cinema_id
+        JOIN schedules s ON st.studio_id = s.studio_id
+        WHERE 1 = 1 ${scheduleDateFilter}
+        GROUP BY fc.cinema_id
       )
       SELECT
         cm.cinema_id,
@@ -118,12 +130,14 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         cm.total_revenue,
         cm.active_movies,
         cm.active_studios,
+        COALESCE(csc.total_capacity, 0)::bigint AS total_capacity,
         tm.movie_id AS top_movie_id,
         tm.title AS top_movie_title,
         tm.tickets_sold AS top_movie_tickets_sold,
         tg.genre AS top_genre,
         tg.tickets_sold AS top_genre_tickets_sold
       FROM cinema_metrics cm
+      LEFT JOIN cinema_schedule_capacity csc ON cm.cinema_id = csc.cinema_id
       LEFT JOIN top_movie_ranked tm
         ON cm.cinema_id = tm.cinema_id
         AND tm.row_num = 1
@@ -134,7 +148,12 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
     params
   );
 
-  return result.rows.map((row) => ({
+  return result.rows.map((row) => {
+    const totalTickets = Number(row.total_tickets || 0);
+    const totalCapacity = Number(row.total_capacity || 0);
+    const occupancy = totalCapacity > 0 ? roundMetric((totalTickets * 100) / totalCapacity) : 0;
+
+    return {
     cinema_id: row.cinema_id,
     cinema_name: row.cinema_name,
     city: row.city,
@@ -144,10 +163,12 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
     lng: null,
     is_mock_location: true,
     metrics: {
-      total_tickets: Number(row.total_tickets || 0),
+      total_tickets: totalTickets,
       total_revenue: Number(row.total_revenue || 0),
       active_movies: Number(row.active_movies || 0),
-      active_studios: Number(row.active_studios || 0)
+      active_studios: Number(row.active_studios || 0),
+      total_capacity: totalCapacity,
+      occupancy
     },
     top_movie: row.top_movie_title
       ? {
@@ -162,7 +183,8 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
           tickets_sold: Number(row.top_genre_tickets_sold || 0)
         }
       : null
-  }));
+    };
+  });
 }
 
 // Mengembalikan breakdown bioskop untuk dashboard dengan dukungan pagination ringan.
@@ -286,7 +308,7 @@ export async function getCinemaPerformance(cinemaId, { start_date = null, end_da
 // Mengembalikan ringkasan agregat per bioskop tanpa metadata master yang terlalu besar.
 export async function getCinemaStats({ city = null, cinema_id = null, start_date = null, end_date = null } = {}) {
   return withCache(
-    "stats-cinema",
+    "stats-cinema-v2",
     { city, cinema_id, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {

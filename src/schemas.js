@@ -194,7 +194,9 @@ export const dashboardRouteSchemas = {
     })
   },
   salesRevenueByCinema: {
-    querystring: buildStatsQuerySchema({})
+    querystring: buildStatsQuerySchema({
+      top_n: positiveInteger
+    })
   },
   salesRevenueByStudio: {
     querystring: buildStatsQuerySchema({})
@@ -242,6 +244,17 @@ export const dashboardRouteSchemas = {
   },
   filmsOperationalRisk: {
     querystring: buildStatsQuerySchema({})
+  },
+  filmsAnalyticsBundle: {
+    querystring: buildStatsQuerySchema({
+      top_n: positiveInteger
+    })
+  },
+  salesAnalyticsBundle: {
+    querystring: buildStatsQuerySchema({
+      cinema_top_n: positiveInteger,
+      movie_top_n: positiveInteger
+    })
   },
   pricingRecommendation: {
     querystring: buildStatsQuerySchema({

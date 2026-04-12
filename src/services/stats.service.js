@@ -56,8 +56,8 @@ export async function getSummary({
   });
 
   return withCache(
-    "stats-summary-v2",
-    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare), occupancy_mode: "avg_studio" },
+    "stats-summary-v3",
+    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare) },
     config.cacheTtlSeconds,
     async () => {
       const runQuery = async (start, end) => {
@@ -65,12 +65,12 @@ export async function getSummary({
           city,
           cinemaId: cinema_id,
           studioId: studio_id
-        }, 5);
+        }, 3);
 
         const extraFilterSql = filters.length ? ` AND ${filters.join(" AND ")}` : "";
         const scheduleStartDate = formatDateOnly(start);
         const scheduleEndDate = formatDateOnly(end);
-        const params = [scheduleStartDate, scheduleEndDate, start, end, ...values];
+        const params = [scheduleStartDate, scheduleEndDate, ...values];
 
         const result = await query(
           `WITH schedule_stats AS (
@@ -116,7 +116,7 @@ export async function getSummary({
           JOIN schedules s ON t.schedule_id = s.schedule_id
           JOIN studio st ON s.studio_id = st.studio_id
           JOIN cinema c ON st.cinema_id = c.cinema_id
-          WHERE CAST(t.trans_time AS TIMESTAMP) BETWEEN $3 AND $4${extraFilterSql}
+          WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)${extraFilterSql}
         )
         SELECT
           ta.total_tickets,
@@ -172,6 +172,7 @@ export async function getSummary({
         },
         meta: {
           period: `${formatDateOnly(startDate)} to ${formatDateOnly(endDate)}`,
+          date_axis: "show_date",
           filters: {
             city,
             cinema_id,
@@ -230,9 +231,9 @@ export async function getTrends({
 
   const timeExpression =
     group_by === "hourly"
-      ? "EXTRACT(HOUR FROM t.trans_time::timestamp)"
+      ? "EXTRACT(HOUR FROM CAST(s.start_time AS TIME))"
       : group_by === "daily"
-        ? "DATE(t.trans_time::timestamp)"
+        ? "CAST(s.show_date AS DATE)"
         : null;
 
   if (!timeExpression) {
@@ -240,12 +241,12 @@ export async function getTrends({
   }
 
   return withCache(
-    "stats-trends-v2",
+    "stats-trends-v3",
     { start_date, end_date, group_by, city, cinema_id, movie_id, studio_id },
     config.cacheTtlSeconds,
     async () => {
       const runTrendQuery = async (rangeStart, rangeEnd) => {
-        const params = [rangeStart, rangeEnd];
+        const params = [formatDateOnly(rangeStart), formatDateOnly(rangeEnd)];
         const filters = buildTrendFilters(params);
 
         const result = await query(
@@ -257,7 +258,7 @@ export async function getTrends({
        JOIN schedules s ON t.schedule_id = s.schedule_id
        JOIN studio st ON s.studio_id = st.studio_id
        JOIN cinema c ON st.cinema_id = c.cinema_id
-       WHERE t.trans_time::timestamp BETWEEN $1 AND $2
+       WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)
        ${filters.length ? `AND ${filters.join(" AND ")}` : ""}
        GROUP BY time_group
        ORDER BY time_group`,
@@ -295,6 +296,7 @@ export async function getTrends({
       return {
         summary: {
           group_by,
+          date_axis: "show_date",
           total_tickets: currentTotals.total_tickets,
           revenue: Number(currentTotals.revenue.toFixed(2)),
           growth: {
@@ -434,6 +436,7 @@ export async function getMovieStats({
   city = null,
   cinema_id = null,
   studio_id = null,
+  movie_id = null,
   rating_usia = null,
   start_date = null,
   end_date = null
@@ -445,8 +448,8 @@ export async function getMovieStats({
   });
 
   return withCache(
-    "stats-movie-v2",
-    { city, cinema_id, studio_id, rating_usia, start_date, end_date },
+    "stats-movie-v3",
+    { city, cinema_id, studio_id, movie_id, rating_usia, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {
       const dateRange = resolveOptionalDateRange(start_date, end_date);
@@ -464,6 +467,11 @@ export async function getMovieStats({
           filters.push(`${studioAlias}.cinema_id = $${params.length}`);
         }
 
+        if (movie_id) {
+          params.push(movie_id);
+          filters.push(`${movieAlias}.movie_id = $${params.length}`);
+        }
+
         if (rating_usia) {
           params.push(rating_usia);
           filters.push(`${movieAlias}.rating_usia = $${params.length}`);
@@ -475,7 +483,7 @@ export async function getMovieStats({
         }
 
         if (dateRange) {
-          params.push(start_date, end_date);
+          params.push(formatDateOnly(dateRange.startDate), formatDateOnly(dateRange.endDate));
           filters.push(`CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`);
         }
 
