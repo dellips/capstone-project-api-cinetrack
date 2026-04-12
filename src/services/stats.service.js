@@ -549,7 +549,10 @@ export async function getMovieStats({
         `SELECT
         COALESCE(m.rating_usia, 'Unknown') AS rating_usia,
         COUNT(t.tiket_id)::int AS total_tickets_sold,
-        COUNT(DISTINCT s.schedule_id)::int AS total_showings
+        COUNT(DISTINCT s.schedule_id)::int AS total_showings,
+        COUNT(CASE WHEN LOWER(t.seat_category) = 'regular' THEN 1 END)::int AS regular_seats,
+        COUNT(CASE WHEN LOWER(t.seat_category) = 'vip' THEN 1 END)::int AS vip_seats,
+        COUNT(CASE WHEN LOWER(t.seat_category) = 'sweetbox' THEN 1 END)::int AS sweetbox_seats
      FROM movies m
      JOIN schedules s ON m.movie_id = s.movie_id
      JOIN studio st ON s.studio_id = st.studio_id
@@ -587,7 +590,12 @@ export async function getMovieStats({
         breakdown_rating_usia: ratingResult.rows.map((row) => ({
           rating_usia: row.rating_usia,
           total_tickets_sold: Number(row.total_tickets_sold || 0),
-          total_showings: Number(row.total_showings || 0)
+          total_showings: Number(row.total_showings || 0),
+          seat_distribution: {
+            Regular: Number(row.regular_seats || 0),
+            VIP: Number(row.vip_seats || 0),
+            Sweetbox: Number(row.sweetbox_seats || 0)
+          }
         }))
       };
     }
