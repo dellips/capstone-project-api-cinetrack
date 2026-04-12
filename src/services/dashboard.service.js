@@ -161,9 +161,22 @@ function buildForecast(breakdown, group_by) {
   const projectedRevenue =
     lastItems.reduce((total, item) => total + Number(item.revenue || 0), 0) / lastItems.length;
 
+  const lastTimeGroup = breakdown[breakdown.length - 1].time_group;
+  let nextPeriod = null;
+
+  if (group_by === "monthly" && lastTimeGroup) {
+    const [year, month] = lastTimeGroup.split("-").map(Number);
+    const nextDate = new Date(year, month, 1);
+    nextPeriod = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+  } else if (lastTimeGroup) {
+    const lastDate = new Date(lastTimeGroup);
+    lastDate.setDate(lastDate.getDate() + 1);
+    nextPeriod = formatDateOnly(lastDate);
+  }
+
   return {
     group_by,
-    next_period: "next_period",
+    next_period: nextPeriod,
     projected_revenue: roundNumber(projectedRevenue),
     is_mock_forecast: true
   };
@@ -339,14 +352,15 @@ export async function getExecutiveDashboard({
     { start_date, end_date, city, cinema_id, studio_id },
     config.cacheTtlSeconds,
     async () => {
-      const [systemStatus, alerts, cinemaStats, topMovies, cityRevenueRows] = await Promise.all([
+      const [systemStatus, alerts, cinemaStats, rankedMovies, cityRevenueRows] = await Promise.all([
         getSystemStatus(),
         getAlertsSummary(),
         getCinemaStats({ city, cinema_id, start_date, end_date }),
-        getMoviesBySales({ city, cinema_id, start_date, end_date, top10: true }),
+        getMoviesBySales({ city, cinema_id, start_date, end_date }),
         getCityRevenueRows({ city, cinema_id, studio_id }, dateRange)
       ]);
 
+      const topMovies = rankedMovies.slice(0, 10);
       const totalMovieRevenue = topMovies.reduce((total, item) => total + Number(item.revenue || 0), 0);
 
       return {
@@ -493,23 +507,44 @@ export async function getSalesRevenueByStudio({
       const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
       const result = await query(
-        `SELECT
-          st.studio_id,
-          st.studio_name,
-          st.cinema_id,
-          c.cinema_name,
-          c.city,
-          COUNT(DISTINCT s.schedule_id)::int AS total_shows,
-          COUNT(t.tiket_id)::int AS total_tickets,
-          COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
-          COALESCE(SUM(CASE WHEN s.schedule_id IS NOT NULL THEN st.total_capacity ELSE 0 END), 0)::int AS total_capacity
-        FROM studio st
-        JOIN cinema c ON st.cinema_id = c.cinema_id
-        LEFT JOIN schedules s ON st.studio_id = s.studio_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-        ${whereClause}
-        GROUP BY st.studio_id, st.studio_name, st.cinema_id, c.cinema_name, c.city
-        ORDER BY COALESCE(SUM(t.final_price), 0) DESC, COUNT(t.tiket_id) DESC, st.studio_name ASC`,
+        `WITH studio_schedule_stats AS (
+          SELECT
+            st.studio_id,
+            st.studio_name,
+            st.cinema_id,
+            c.cinema_name,
+            c.city,
+            s.schedule_id,
+            st.total_capacity,
+            COUNT(t.tiket_id)::int AS total_tickets,
+            COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue
+          FROM studio st
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          LEFT JOIN schedules s ON st.studio_id = s.studio_id
+          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+          ${whereClause}
+          GROUP BY
+            st.studio_id,
+            st.studio_name,
+            st.cinema_id,
+            c.cinema_name,
+            c.city,
+            s.schedule_id,
+            st.total_capacity
+        )
+        SELECT
+          studio_id,
+          studio_name,
+          cinema_id,
+          cinema_name,
+          city,
+          COUNT(schedule_id)::int AS total_shows,
+          COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
+          COALESCE(SUM(total_revenue), 0)::float8 AS total_revenue,
+          COALESCE(SUM(CASE WHEN schedule_id IS NOT NULL THEN total_capacity ELSE 0 END), 0)::int AS total_capacity
+        FROM studio_schedule_stats
+        GROUP BY studio_id, studio_name, cinema_id, cinema_name, city
+        ORDER BY COALESCE(SUM(total_revenue), 0) DESC, COALESCE(SUM(total_tickets), 0) DESC, studio_name ASC`,
         scope.params
       );
 
@@ -655,7 +690,7 @@ export async function getSalesTimeSlots({
           maxDemand === minDemand ? (item.demand > 0 ? 1 : 0) : (item.demand - minDemand) / (maxDemand - minDemand);
         const normalizedRevenue =
           maxRevenue === minRevenue ? (item.revenue > 0 ? 1 : 0) : (item.revenue - minRevenue) / (maxRevenue - minRevenue);
-        const optimizationScore = roundNumber((normalizedDemand * 0.6) - (normalizedRevenue * 0.4));
+        const optimizationScore = roundNumber((normalizedDemand * 0.6) + (normalizedRevenue * 0.4));
         const occupancy =
           item.total_capacity > 0 ? roundNumber((item.demand * 100) / item.total_capacity) : 0;
 
@@ -783,7 +818,7 @@ export async function getSalesWeekendVsWeekday({
         `WITH per_schedule AS (
           SELECT
             CASE
-              WHEN EXTRACT(DOW FROM CAST(s.show_date AS DATE)) IN (0, 5, 6) THEN 'weekend'
+              WHEN EXTRACT(DOW FROM CAST(s.show_date AS DATE)) IN (0, 6) THEN 'weekend'
               ELSE 'weekday'
             END AS day_type,
             s.schedule_id,
@@ -1095,7 +1130,7 @@ export async function getFilmsPerformance({
     async () => {
       const movies = await getMoviesBySales({ start_date, end_date, city, cinema_id });
 
-      const breakdown = [...movies]
+      const sorted = [...movies]
         .sort((left, right) => {
           if (right.tickets_sold !== left.tickets_sold) {
             return right.tickets_sold - left.tickets_sold;
@@ -1103,14 +1138,20 @@ export async function getFilmsPerformance({
 
           return right.revenue - left.revenue;
         })
-        .slice(0, Number(top_n || 10))
-        .map((item, index) => ({
+        .slice(0, Number(top_n || 10));
+
+      const maxTickets = Math.max(...sorted.map((item) => item.tickets_sold), 1);
+      const maxRevenue = Math.max(...sorted.map((item) => item.revenue), 1);
+
+      const breakdown = sorted.map((item, index) => ({
           rank: index + 1,
           movie_id: item.movie_id,
           title: item.title,
           total_tickets: item.tickets_sold,
           total_revenue: roundNumber(item.revenue),
-          blockbuster_score: roundNumber((item.tickets_sold * 0.6) + (Number(item.revenue || 0) * 0.4))
+          blockbuster_score: roundNumber(
+            ((item.tickets_sold / maxTickets) * 0.6) + ((Number(item.revenue || 0) / maxRevenue) * 0.4)
+          )
         }));
 
       return {
@@ -1197,20 +1238,30 @@ export async function getFilmsSchedules({
           scope.params
         ),
         query(
-          `SELECT
-            s.movie_id,
-            m.title,
-            COUNT(DISTINCT s.schedule_id)::int AS total_schedules,
-            COUNT(t.tiket_id)::int AS total_tickets,
-            SUM(st.total_capacity)::int AS total_capacity
-          FROM schedules s
-          JOIN movies m ON s.movie_id = m.movie_id
-          JOIN studio st ON s.studio_id = st.studio_id
-          JOIN cinema c ON st.cinema_id = c.cinema_id
-          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-          ${whereClause}
-          GROUP BY s.movie_id, m.title
-          ORDER BY COUNT(t.tiket_id) DESC, m.title ASC`,
+          `WITH per_schedule AS (
+            SELECT
+              s.schedule_id,
+              s.movie_id,
+              m.title,
+              st.total_capacity,
+              COUNT(t.tiket_id)::int AS total_tickets
+            FROM schedules s
+            JOIN movies m ON s.movie_id = m.movie_id
+            JOIN studio st ON s.studio_id = st.studio_id
+            JOIN cinema c ON st.cinema_id = c.cinema_id
+            LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+            ${whereClause}
+            GROUP BY s.schedule_id, s.movie_id, m.title, st.total_capacity
+          )
+          SELECT
+            movie_id,
+            title,
+            COUNT(schedule_id)::int AS total_schedules,
+            COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
+            COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+          FROM per_schedule
+          GROUP BY movie_id, title
+          ORDER BY COALESCE(SUM(total_tickets), 0) DESC, title ASC`,
           scope.params
         )
       ]);
@@ -1288,19 +1339,29 @@ export async function getFilmsOccupancy({
           const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
           return query(
-            `SELECT
-              s.movie_id,
-              m.title,
-              COUNT(t.tiket_id)::int AS total_tickets,
-              SUM(st.total_capacity)::int AS total_capacity
-            FROM schedules s
-            JOIN movies m ON s.movie_id = m.movie_id
-            JOIN studio st ON s.studio_id = st.studio_id
-            JOIN cinema c ON st.cinema_id = c.cinema_id
-            LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-            ${whereClause}
-            GROUP BY s.movie_id, m.title
-            ORDER BY COUNT(t.tiket_id) DESC, m.title ASC`,
+            `WITH per_schedule AS (
+              SELECT
+                s.schedule_id,
+                s.movie_id,
+                m.title,
+                st.total_capacity,
+                COUNT(t.tiket_id)::int AS total_tickets
+              FROM schedules s
+              JOIN movies m ON s.movie_id = m.movie_id
+              JOIN studio st ON s.studio_id = st.studio_id
+              JOIN cinema c ON st.cinema_id = c.cinema_id
+              LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+              ${whereClause}
+              GROUP BY s.schedule_id, s.movie_id, m.title, st.total_capacity
+            )
+            SELECT
+              movie_id,
+              title,
+              COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
+              COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+            FROM per_schedule
+            GROUP BY movie_id, title
+            ORDER BY COALESCE(SUM(total_tickets), 0) DESC, title ASC`,
             scope.params
           );
         })(),
@@ -1310,17 +1371,26 @@ export async function getFilmsOccupancy({
           const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
           return query(
-            `SELECT
-              s.show_date,
-              COUNT(t.tiket_id)::int AS total_tickets,
-              SUM(st.total_capacity)::int AS total_capacity
-            FROM schedules s
-            JOIN studio st ON s.studio_id = st.studio_id
-            JOIN cinema c ON st.cinema_id = c.cinema_id
-            LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-            ${whereClause}
-            GROUP BY s.show_date
-            ORDER BY CAST(s.show_date AS DATE)`,
+            `WITH per_schedule AS (
+              SELECT
+                s.schedule_id,
+                s.show_date,
+                st.total_capacity,
+                COUNT(t.tiket_id)::int AS total_tickets
+              FROM schedules s
+              JOIN studio st ON s.studio_id = st.studio_id
+              JOIN cinema c ON st.cinema_id = c.cinema_id
+              LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+              ${whereClause}
+              GROUP BY s.schedule_id, s.show_date, st.total_capacity
+            )
+            SELECT
+              show_date,
+              COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
+              COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+            FROM per_schedule
+            GROUP BY show_date
+            ORDER BY CAST(show_date AS DATE)`,
             scope.params
           );
         })(),
@@ -1330,18 +1400,28 @@ export async function getFilmsOccupancy({
           const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
           return query(
-            `SELECT
-              st.studio_id,
-              st.studio_name,
-              COUNT(t.tiket_id)::int AS total_tickets,
-              SUM(st.total_capacity)::int AS total_capacity
-            FROM schedules s
-            JOIN studio st ON s.studio_id = st.studio_id
-            JOIN cinema c ON st.cinema_id = c.cinema_id
-            LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-            ${whereClause}
-            GROUP BY st.studio_id, st.studio_name
-            ORDER BY COUNT(t.tiket_id) DESC, st.studio_name ASC`,
+            `WITH per_schedule AS (
+              SELECT
+                s.schedule_id,
+                st.studio_id,
+                st.studio_name,
+                st.total_capacity,
+                COUNT(t.tiket_id)::int AS total_tickets
+              FROM schedules s
+              JOIN studio st ON s.studio_id = st.studio_id
+              JOIN cinema c ON st.cinema_id = c.cinema_id
+              LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+              ${whereClause}
+              GROUP BY s.schedule_id, st.studio_id, st.studio_name, st.total_capacity
+            )
+            SELECT
+              studio_id,
+              studio_name,
+              COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
+              COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+            FROM per_schedule
+            GROUP BY studio_id, studio_name
+            ORDER BY COALESCE(SUM(total_tickets), 0) DESC, studio_name ASC`,
             scope.params
           );
         })()
@@ -1420,7 +1500,7 @@ export async function getFilmsDistribution({
     config.cacheTtlSeconds,
     async () => {
       const [movieStats, genreResult, studioFormatResult] = await Promise.all([
-        getMovieStats({ start_date, end_date, city, cinema_id }),
+        getMovieStats({ start_date, end_date, city, cinema_id, studio_id }),
         (async () => {
           const scope = buildScopeFilters({ city, cinema_id, studio_id });
           appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
@@ -1631,23 +1711,36 @@ export async function getBestAdSlots({
       const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
       const result = await query(
-        `SELECT
-          s.movie_id,
-          m.title,
-          m.genre,
-          LPAD(EXTRACT(HOUR FROM CAST(s.start_time AS TIME))::int::text, 2, '0') || ':00' AS time_slot,
-          COUNT(DISTINCT s.schedule_id)::int AS total_shows,
-          COUNT(t.tiket_id)::int AS audience_size,
-          COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
-          COALESCE(SUM(CASE WHEN s.schedule_id IS NOT NULL THEN st.total_capacity ELSE 0 END), 0)::int AS total_capacity
-        FROM schedules s
-        JOIN movies m ON s.movie_id = m.movie_id
-        JOIN studio st ON s.studio_id = st.studio_id
-        JOIN cinema c ON st.cinema_id = c.cinema_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-        ${whereClause}
-        GROUP BY s.movie_id, m.title, m.genre, time_slot
-        ORDER BY COUNT(t.tiket_id) DESC, COALESCE(SUM(t.final_price), 0) DESC, m.title ASC`,
+        `WITH per_schedule AS (
+          SELECT
+            s.schedule_id,
+            s.movie_id,
+            m.title,
+            m.genre,
+            LPAD(EXTRACT(HOUR FROM CAST(s.start_time AS TIME))::int::text, 2, '0') || ':00' AS time_slot,
+            st.total_capacity,
+            COUNT(t.tiket_id)::int AS audience_size,
+            COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue
+          FROM schedules s
+          JOIN movies m ON s.movie_id = m.movie_id
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+          ${whereClause}
+          GROUP BY s.schedule_id, s.movie_id, m.title, m.genre, time_slot, st.total_capacity
+        )
+        SELECT
+          movie_id,
+          title,
+          genre,
+          time_slot,
+          COUNT(schedule_id)::int AS total_shows,
+          COALESCE(SUM(audience_size), 0)::int AS audience_size,
+          COALESCE(SUM(total_revenue), 0)::float8 AS total_revenue,
+          COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+        FROM per_schedule
+        GROUP BY movie_id, title, genre, time_slot
+        ORDER BY COALESCE(SUM(audience_size), 0) DESC, COALESCE(SUM(total_revenue), 0) DESC, title ASC`,
         scope.params
       );
 
@@ -1869,31 +1962,48 @@ export async function getCannibalization({
       const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
       const result = await query(
-        `SELECT
-          c.cinema_id,
-          c.cinema_name,
-          c.city,
-          s.show_date,
-          LPAD(EXTRACT(HOUR FROM CAST(s.start_time AS TIME))::int::text, 2, '0') || ':00' AS time_slot,
-          s.movie_id,
-          m.title,
-          COUNT(t.tiket_id)::int AS total_tickets,
-          SUM(st.total_capacity)::int AS total_capacity
-        FROM schedules s
-        JOIN movies m ON s.movie_id = m.movie_id
-        JOIN studio st ON s.studio_id = st.studio_id
-        JOIN cinema c ON st.cinema_id = c.cinema_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-        ${whereClause}
-        GROUP BY
-          c.cinema_id,
-          c.cinema_name,
-          c.city,
-          s.show_date,
+        `WITH per_schedule AS (
+          SELECT
+            c.cinema_id,
+            c.cinema_name,
+            c.city,
+            s.show_date,
+            LPAD(EXTRACT(HOUR FROM CAST(s.start_time AS TIME))::int::text, 2, '0') || ':00' AS time_slot,
+            s.movie_id,
+            m.title,
+            s.schedule_id,
+            st.total_capacity,
+            COUNT(t.tiket_id)::int AS total_tickets
+          FROM schedules s
+          JOIN movies m ON s.movie_id = m.movie_id
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+          ${whereClause}
+          GROUP BY
+            c.cinema_id,
+            c.cinema_name,
+            c.city,
+            s.show_date,
+            time_slot,
+            s.movie_id,
+            m.title,
+            s.schedule_id,
+            st.total_capacity
+        )
+        SELECT
+          cinema_id,
+          cinema_name,
+          city,
+          show_date,
           time_slot,
-          s.movie_id,
-          m.title
-        ORDER BY c.cinema_id, s.show_date, time_slot, m.title`,
+          movie_id,
+          title,
+          COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
+          COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+        FROM per_schedule
+        GROUP BY cinema_id, cinema_name, city, show_date, time_slot, movie_id, title
+        ORDER BY cinema_id, show_date, time_slot, title`,
         scope.params
       );
 

@@ -23,11 +23,16 @@ import {
   getSalesWeekendVsWeekday,
   getSalesTrend
 } from "../services/dashboard.service.js";
+import { getCurrentAdmin } from "../services/auth.service.js";
 import { dashboardRouteSchemas } from "../schemas.js";
 import { successResponse } from "../utils/response.js";
 
 // Mendaftarkan endpoint dashboard agregat agar frontend tidak perlu menghitung ulang insight berat.
 export default async function dashboardRoutes(fastify) {
+  fastify.addHook("onRequest", async (request) => {
+    await getCurrentAdmin(request.headers.authorization);
+  });
+
   fastify.get("/dashboard/executive", { schema: dashboardRouteSchemas.executive }, async (request) =>
     successResponse(await getExecutiveDashboard(request.query), {
       filters: request.query

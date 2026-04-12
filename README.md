@@ -171,6 +171,7 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 
 ### Analytics
 
+- `GET /api/v1/movie` (legacy alias)
 - `GET /api/v1/movies/rankings`
 - `GET /api/v1/stats/summary`
 - `GET /api/v1/stats/trends`
@@ -239,6 +240,7 @@ Filter yang tersedia:
 - `/tikets`: `schedule_id`, `movie_id`, `cinema_id`, `payment_type`, `seat_category`, `start_date`, `end_date`
 - `/tickets`: `schedule_id`, `movie_id`, `cinema_id`, `payment_type`, `seat_category`, `start_date`, `end_date`
 - `/movie`: `top10`, `city`, `cinema_id`, `start_date`, `end_date`
+- `/movies/rankings`: `top10`, `city`, `cinema_id`, `start_date`, `end_date`
 - `/stats/summary`: `start_date`, `end_date`, `period`, `city`, `cinema_id`, `studio_id`, `compare`
 - `/stats/trends`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `movie_id`, `studio_id`
 - `/stats/occupancy`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `movie_id`, `studio_id`

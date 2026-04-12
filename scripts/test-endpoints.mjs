@@ -327,6 +327,11 @@ async function main() {
   });
 
   await runCase(app, recorder, {
+    name: "Movie Rankings Canonical",
+    url: "/api/v1/movies/rankings?top10=true"
+  });
+
+  await runCase(app, recorder, {
     name: "Stats Summary",
     url: "/api/v1/stats/summary?compare=true"
   });

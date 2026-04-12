@@ -1,6 +1,6 @@
 import { createHttpError } from "../utils/http-error.js";
 import { getBearerToken, issueAuthTokens, verifyToken } from "../utils/auth.js";
-import { readAppState, updateAppState } from "../utils/state.js";
+import { readAppState, updateAppState, pruneRefreshTokens } from "../utils/state.js";
 
 const ADMIN_USER = {
   id: "A001",
@@ -31,14 +31,14 @@ export async function loginAdmin({ email, password }) {
 
   await updateAppState((state) => ({
     ...state,
-    refresh_tokens: [
+    refresh_tokens: pruneRefreshTokens([
       ...state.refresh_tokens.filter((item) => item.token !== tokens.refresh_token),
       {
         token: tokens.refresh_token,
         user_id: user.id,
         created_at: new Date().toISOString()
       }
-    ]
+    ])
   }));
 
   return {
@@ -63,14 +63,14 @@ export async function refreshAdminToken(refreshToken) {
 
   await updateAppState((currentState) => ({
     ...currentState,
-    refresh_tokens: [
+    refresh_tokens: pruneRefreshTokens([
       ...currentState.refresh_tokens.filter((item) => item.token !== refreshToken),
       {
         token: tokens.refresh_token,
         user_id: user.id,
         created_at: new Date().toISOString()
       }
-    ]
+    ])
   }));
 
   return {

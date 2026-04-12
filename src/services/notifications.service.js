@@ -4,16 +4,23 @@ import { getCinemaStats } from "./cinemas.service.js";
 import { createHttpError } from "../utils/http-error.js";
 import { buildPaginationMeta, resolvePagination } from "../utils/pagination.js";
 import { readAppState, updateAppState } from "../utils/state.js";
+import { withCache } from "../utils/cache.js";
+import { config } from "../config.js";
 
 // Menentukan notifikasi dari kondisi backend agar dashboard tetap punya sumber alert yang berguna.
 async function buildNotifications() {
-  const [health, summary, cinemaStats] = await Promise.all([
-    getSystemHealth(),
-    getSummary({ compare: true }),
-    getCinemaStats({})
-  ]);
+  return withCache(
+    "system-notifications",
+    {},
+    config.cacheTtlSeconds,
+    async () => {
+      const [health, summary, cinemaStats] = await Promise.all([
+        getSystemHealth(),
+        getSummary({ compare: true }),
+        getCinemaStats({})
+      ]);
 
-  const notifications = [];
+      const notifications = [];
 
   notifications.push({
     notification_id: "system-health",
@@ -72,7 +79,8 @@ async function buildNotifications() {
     context: cinemaStats.summary
   });
 
-  return notifications;
+    return notifications;
+  });
 }
 
 // Menempelkan status read dari state lokal ke daftar notifikasi hasil komputasi backend.

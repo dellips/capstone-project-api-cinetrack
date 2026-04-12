@@ -141,10 +141,7 @@ export async function getAllStudios({
       cinema_id: studio.cinema_id,
       studio_name: studio.studio_name,
       total_capacity: Number(studio.total_capacity || 0),
-      capacity: Number(studio.total_capacity || 0),
-      screen_type: studio.screen_type,
-      format: studio.screen_type,
-      type: studio.screen_type
+      screen_type: studio.screen_type
     })),
     meta: {
       filters: {
@@ -414,7 +411,7 @@ export async function getMoviesBySales({
     config.cacheTtlSeconds,
     async () => {
       const dateRange = resolveOptionalDateRange(start_date, end_date);
-      const effectiveDateRange = dateRange ?? resolveDateRange(undefined, undefined, "daily");
+      const effectiveDateRange = dateRange ?? resolveDateRange(undefined, undefined, "monthly");
       const params = [];
       const filters = [];
 

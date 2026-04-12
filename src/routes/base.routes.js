@@ -15,6 +15,20 @@ import { successResponse } from "../utils/response.js";
 
 // Mendaftarkan endpoint dasar untuk master data dan ranking film.
 export default async function baseRoutes(fastify) {
+  async function handleMovieRankings(request) {
+    const filters = {
+      top10: request.query.top10 ?? false,
+      city: request.query.city ?? null,
+      cinema_id: request.query.cinema_id ?? null,
+      start_date: request.query.start_date ?? null,
+      end_date: request.query.end_date ?? null
+    };
+
+    return successResponse(await getMoviesBySales(filters), {
+      filters
+    });
+  }
+
   fastify.get("/", { schema: baseRouteSchemas.root }, async () =>
     successResponse({
       message: "Cinema Analytics API is running"
@@ -53,7 +67,7 @@ export default async function baseRoutes(fastify) {
     successResponse(await getTiketDetail(request.params.tiket_id))
   );
 
-  fastify.get("/tickets", { schema: baseRouteSchemas.tickets }, async (request) => {
+  fastify.get("/tickets", { schema: baseRouteSchemas.tikets }, async (request) => {
     const result = await getTickets(request.query);
     return successResponse(result.data, result.meta);
   });
@@ -62,17 +76,5 @@ export default async function baseRoutes(fastify) {
     successResponse(await getTicketDetail(request.params.ticket_id))
   );
 
-  fastify.get("/movies/rankings", { schema: baseRouteSchemas.movieRankings }, async (request) => {
-    const filters = {
-      top10: request.query.top10 ?? false,
-      city: request.query.city ?? null,
-      cinema_id: request.query.cinema_id ?? null,
-      start_date: request.query.start_date ?? null,
-      end_date: request.query.end_date ?? null
-    };
-
-    return successResponse(await getMoviesBySales(filters), {
-      filters
-    });
-  });
+  fastify.get("/movies/rankings", { schema: baseRouteSchemas.movieRankings }, handleMovieRankings);
 }

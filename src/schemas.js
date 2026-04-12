@@ -85,17 +85,6 @@ export const baseRouteSchemas = {
       end_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
     })
   },
-  tickets: {
-    querystring: buildListQuerySchema({
-      schedule_id: nonEmptyString,
-      movie_id: nonEmptyString,
-      cinema_id: nonEmptyString,
-      payment_type: nonEmptyString,
-      seat_category: nonEmptyString,
-      start_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
-      end_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
-    })
-  },
   tiketDetail: buildIdParamsSchema("tiket_id"),
   ticketDetail: buildIdParamsSchema("ticket_id"),
   movieRankings: {

@@ -137,7 +137,10 @@ export async function getSummary({
           total_tickets: Number(row.total_tickets || 0),
           total_capacity: Number(row.total_capacity || 0),
           revenue: Number(row.revenue || 0),
-          avg_occupancy: Number((Number(row.avg_studio_occupancy || 0) * 100).toFixed(2)),
+          avg_occupancy:
+            Number(row.total_capacity || 0) > 0
+              ? Number((((Number(row.total_tickets_for_occupancy || 0) * 100) / Number(row.total_capacity || 0))).toFixed(2))
+              : 0,
           total_transactions: Number(row.total_transactions || 0),
           cinema_aktif: Number(row.cinema_aktif || 0)
         };
@@ -430,18 +433,20 @@ export async function getOccupancy({
 export async function getMovieStats({
   city = null,
   cinema_id = null,
+  studio_id = null,
   rating_usia = null,
   start_date = null,
   end_date = null
 }) {
   await validateFilters({
     city,
-    cinemaId: cinema_id
+    cinemaId: cinema_id,
+    studioId: studio_id
   });
 
   return withCache(
     "stats-movie-v2",
-    { city, cinema_id, rating_usia, start_date, end_date },
+    { city, cinema_id, studio_id, rating_usia, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {
       const dateRange = resolveOptionalDateRange(start_date, end_date);
@@ -462,6 +467,11 @@ export async function getMovieStats({
         if (rating_usia) {
           params.push(rating_usia);
           filters.push(`${movieAlias}.rating_usia = $${params.length}`);
+        }
+
+        if (studio_id) {
+          params.push(studio_id);
+          filters.push(`${studioAlias}.studio_id = $${params.length}`);
         }
 
         if (dateRange) {

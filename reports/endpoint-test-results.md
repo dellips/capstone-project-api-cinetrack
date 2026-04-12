@@ -1,11 +1,11 @@
 # Endpoint Test Results
 
-Generated at: 2026-04-12T01:22:05.552Z
+Generated at: 2026-04-12T04:03:05.554Z
 
 ## Summary
 
-- Total: 59
-- Passed: 59
+- Total: 60
+- Passed: 60
 - Failed: 0
 
 ## Sample IDs
@@ -39,6 +39,7 @@ Generated at: 2026-04-12T01:22:05.552Z
 - [PASS] GET /api/v1/tikets/T00000001 -> 200
 - [PASS] GET /api/v1/tickets/T00000001 -> 200
 - [PASS] GET /api/v1/movie?top10=true -> 200
+- [PASS] GET /api/v1/movies/rankings?top10=true -> 200
 - [PASS] GET /api/v1/stats/summary?compare=true -> 200
 - [PASS] GET /api/v1/stats/trends?group_by=daily -> 200
 - [PASS] GET /api/v1/stats/occupancy?group_by=daily -> 200
