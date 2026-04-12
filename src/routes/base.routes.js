@@ -51,7 +51,7 @@ export default async function baseRoutes(fastify) {
     successResponse(await getTiketDetail(request.params.tiket_id))
   );
 
-  fastify.get("/movie", { schema: baseRouteSchemas.movieRankings }, async (request) => {
+  fastify.get("/movies/rankings", { schema: baseRouteSchemas.movieRankings }, async (request) => {
     const filters = {
       top10: request.query.top10 ?? false,
       city: request.query.city ?? null,

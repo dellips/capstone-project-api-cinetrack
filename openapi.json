@@ -364,7 +364,7 @@
         }
       }
     },
-    "/movie": {
+    "/movies/rankings": {
       "get": {
         "tags": ["Analytics"],
         "summary": "Rank movies by ticket sales",

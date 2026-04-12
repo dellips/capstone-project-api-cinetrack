@@ -159,7 +159,7 @@ Seluruh endpoint utama tersedia di `/api/v1`.
 
 ### Analytics
 
-- `GET /api/v1/movie`
+- `GET /api/v1/movies/rankings`
 - `GET /api/v1/stats/summary`
 - `GET /api/v1/stats/trends`
 - `GET /api/v1/stats/occupancy`
@@ -195,7 +195,7 @@ Filter yang tersedia:
 - `/studios`: `cinema_id`, `studio_id`, `screen_type`
 - `/schedules`: `movie_id`, `cinema_id`, `studio_id`, `show_date`, `start_date`, `end_date`, `status`
 - `/tikets`: `schedule_id`, `movie_id`, `cinema_id`, `payment_type`, `seat_category`, `start_date`, `end_date`
-- `/movie`: `top10`, `city`, `cinema_id`, `start_date`, `end_date`
+- `/movies/rankings`: `top10`, `city`, `cinema_id`, `start_date`, `end_date`
 - `/stats/summary`: `start_date`, `end_date`, `period`, `city`, `cinema_id`, `studio_id`, `compare`
 - `/stats/trends`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `movie_id`, `studio_id`
 - `/stats/occupancy`: `start_date`, `end_date`, `group_by`, `city`, `cinema_id`, `movie_id`, `studio_id`
@@ -222,7 +222,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 Ranking film:
 
 ```bash
-curl "http://localhost:8000/api/v1/movie?top10=true&start_date=2026-04-01&end_date=2026-04-07"
+curl "http://localhost:8000/api/v1/movies/rankings?top10=true&start_date=2026-04-01&end_date=2026-04-07"
 ```
 
 Summary dashboard:
@@ -249,7 +249,7 @@ curl http://localhost:8000/api/v1/settings \
 - Endpoint `settings`, `notifications`, `alerts`, dan refresh-token state memakai penyimpanan file lokal di `src/data/`.
 - `GET /system/health` akan mengembalikan `503` bila backend tidak bisa menjangkau database.
 - `GET /movies/:movie_id`, `GET /cinemas/:cinema_id`, `GET /studios/:studio_id`, `GET /schedules/:schedule_id`, dan `GET /tikets/:tiket_id` mengembalikan `404` bila data tidak ditemukan.
-- Endpoint analytics yang paling berat saat ini adalah `/cinemas`, `/stats/movie`, `/movie`, dan `/notifications`.
+- Endpoint analytics yang paling berat saat ini adalah `/cinemas`, `/stats/movie`, `/movies/rankings`, dan `/notifications`.
 
 ## Admin Dashboard Login
 

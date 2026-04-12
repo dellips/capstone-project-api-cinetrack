@@ -1,5 +1,5 @@
 import { query } from "../db.js";
-import { resolveOptionalDateRange } from "../utils/date.js";
+import { formatDateOnly, resolveDateRange, resolveOptionalDateRange } from "../utils/date.js";
 import { createHttpError } from "../utils/http-error.js";
 import { buildPaginationMeta, resolvePagination } from "../utils/pagination.js";
 import { validateFilters } from "../utils/validation.js";
@@ -390,6 +390,7 @@ export async function getMoviesBySales({
     config.cacheTtlSeconds,
     async () => {
       const dateRange = resolveOptionalDateRange(start_date, end_date);
+      const effectiveDateRange = dateRange ?? resolveDateRange(undefined, undefined, "daily");
       const params = [];
       const filters = [];
 
@@ -403,10 +404,13 @@ export async function getMoviesBySales({
         filters.push(`st.cinema_id = $${params.length}`);
       }
 
-      if (dateRange) {
-        params.push(dateRange.startDate.toISOString(), dateRange.endDate.toISOString());
-        filters.push(`t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`);
-      }
+      params.push(
+        formatDateOnly(effectiveDateRange.startDate),
+        formatDateOnly(effectiveDateRange.endDate)
+      );
+      filters.push(
+        `CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`
+      );
 
       const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
       const limitClause = String(top10) === "true" || top10 === true ? "LIMIT 10" : "";
@@ -427,7 +431,7 @@ export async function getMoviesBySales({
      LEFT JOIN tiket t ON t.schedule_id = s.schedule_id
      ${whereClause}
      GROUP BY m.movie_id, m.title, m.genre, m.rating_usia, m.duration_min
-     ORDER BY COUNT(t.tiket_id) DESC
+     ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
      ${limitClause}`,
         params
       );
