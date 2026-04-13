@@ -164,6 +164,7 @@ function mapRecordToResponse(record) {
     generated_at: record.updated_at,
     ai_source: record.ai_source || "unknown",
     ai_model: record.ai_model || null,
+    summary: record.summary_snapshot || {},
     cards: buildDashboardCards(insight),
     metrics: record.summary_snapshot || {},
     highlights: {

@@ -149,7 +149,7 @@ async function getCinemaBreakdownRows({
         JOIN studio st ON fc.cinema_id = st.cinema_id
         JOIN schedules s ON st.studio_id = s.studio_id
         JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
         CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
         WHERE TRIM(genre_item) <> '' ${salesWhereClause}
         GROUP BY fc.cinema_id, TRIM(genre_item)
@@ -161,7 +161,7 @@ async function getCinemaBreakdownRows({
         FROM filtered_cinemas fc
         JOIN studio st ON fc.cinema_id = st.cinema_id
         JOIN schedules s ON st.studio_id = s.studio_id
-        WHERE 1 = 1 ${scheduleDateFilter}
+        WHERE 1 = 1 ${activeMovieWhereClause}
         GROUP BY fc.cinema_id
       )
       SELECT
@@ -182,6 +182,8 @@ async function getCinemaBreakdownRows({
       FROM cinema_metrics cm
       LEFT JOIN active_movie_metrics amm
         ON cm.cinema_id = amm.cinema_id
+      LEFT JOIN cinema_schedule_capacity csc
+        ON cm.cinema_id = csc.cinema_id
       LEFT JOIN top_movie_ranked tm
         ON cm.cinema_id = tm.cinema_id
         AND tm.row_num = 1
