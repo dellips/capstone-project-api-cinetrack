@@ -28,7 +28,8 @@ export default async function statsRoutes(fastify) {
     };
 
     return successResponse(await getTrends(request.query), {
-      filters
+      filters,
+      date_axis: "show_date"
     });
   });
 
@@ -44,7 +45,8 @@ export default async function statsRoutes(fastify) {
     };
 
     return successResponse(await getOccupancy(request.query), {
-      filters
+      filters,
+      date_axis: "show_date"
     });
   });
 
@@ -60,7 +62,8 @@ export default async function statsRoutes(fastify) {
     };
 
     return successResponse(await getMovieStats(request.query), {
-      filters
+      filters,
+      date_axis: "show_date"
     });
   });
 
@@ -73,7 +76,8 @@ export default async function statsRoutes(fastify) {
         movie_id: request.query.movie_id ?? null,
         start_date: request.query.start_date ?? null,
         end_date: request.query.end_date ?? null
-      }
+      },
+      date_axis: "show_date"
     })
   );
 

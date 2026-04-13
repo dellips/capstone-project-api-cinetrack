@@ -6,6 +6,10 @@ import { validateFilters } from "../utils/validation.js";
 import { withCache } from "../utils/cache.js";
 import { config } from "../config.js";
 
+function roundMetric(value, digits = 2) {
+  return Number(Number(value || 0).toFixed(digits));
+}
+
 // Menyusun filter bioskop agar list, stats, dan performance memakai logika yang sama.
 function buildCinemaFilters({ city = null, cinema_id = null, studio_id = null } = {}) {
   const params = [];
@@ -145,10 +149,20 @@ async function getCinemaBreakdownRows({
         JOIN studio st ON fc.cinema_id = st.cinema_id
         JOIN schedules s ON st.studio_id = s.studio_id
         JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
         CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
         WHERE TRIM(genre_item) <> '' ${salesWhereClause}
         GROUP BY fc.cinema_id, TRIM(genre_item)
+      ),
+      cinema_schedule_capacity AS (
+        SELECT
+          fc.cinema_id,
+          COALESCE(SUM(st.total_capacity), 0)::bigint AS total_capacity
+        FROM filtered_cinemas fc
+        JOIN studio st ON fc.cinema_id = st.cinema_id
+        JOIN schedules s ON st.studio_id = s.studio_id
+        WHERE 1 = 1 ${scheduleDateFilter}
+        GROUP BY fc.cinema_id
       )
       SELECT
         cm.cinema_id,
@@ -159,6 +173,7 @@ async function getCinemaBreakdownRows({
         cm.total_revenue,
         COALESCE(amm.active_movies, 0)::int AS active_movies,
         cm.active_studios,
+        COALESCE(csc.total_capacity, 0)::bigint AS total_capacity,
         tm.movie_id AS top_movie_id,
         tm.title AS top_movie_title,
         tm.tickets_sold AS top_movie_tickets_sold,
@@ -177,7 +192,12 @@ async function getCinemaBreakdownRows({
     params
   );
 
-  return result.rows.map((row) => ({
+  return result.rows.map((row) => {
+    const totalTickets = Number(row.total_tickets || 0);
+    const totalCapacity = Number(row.total_capacity || 0);
+    const occupancy = totalCapacity > 0 ? roundMetric((totalTickets * 100) / totalCapacity) : 0;
+
+    return {
     cinema_id: row.cinema_id,
     cinema_name: row.cinema_name,
     city: row.city,
@@ -187,10 +207,12 @@ async function getCinemaBreakdownRows({
     lng: null,
     is_mock_location: true,
     metrics: {
-      total_tickets: Number(row.total_tickets || 0),
+      total_tickets: totalTickets,
       total_revenue: Number(row.total_revenue || 0),
       active_movies: Number(row.active_movies || 0),
-      active_studios: Number(row.active_studios || 0)
+      active_studios: Number(row.active_studios || 0),
+      total_capacity: totalCapacity,
+      occupancy
     },
     top_movie: row.top_movie_title
       ? {
@@ -205,7 +227,8 @@ async function getCinemaBreakdownRows({
           tickets_sold: Number(row.top_genre_tickets_sold || 0)
         }
       : null
-  }));
+    };
+  });
 }
 
 // Mengembalikan breakdown bioskop untuk dashboard dengan dukungan pagination ringan.

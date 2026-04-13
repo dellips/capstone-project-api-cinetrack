@@ -493,11 +493,12 @@ export async function getSalesRevenueByCinema({
   start_date,
   end_date,
   city = null,
-  cinema_id = null
+  cinema_id = null,
+  top_n = null
 } = {}) {
   return withCache(
     "dashboard-sales-revenue-by-cinema",
-    { start_date, end_date, city, cinema_id },
+    { start_date, end_date, city, cinema_id, top_n: String(top_n ?? "") },
     config.cacheTtlSeconds,
     async () => {
       const cinemaStats = await getCinemaStats({ start_date, end_date, city, cinema_id });
@@ -506,7 +507,7 @@ export async function getSalesRevenueByCinema({
         0
       );
 
-      const breakdown = [...cinemaStats.breakdown]
+      const fullBreakdown = [...cinemaStats.breakdown]
         .sort((left, right) => right.metrics.total_revenue - left.metrics.total_revenue)
         .map((item, index) => ({
           rank: index + 1,
@@ -515,6 +516,11 @@ export async function getSalesRevenueByCinema({
           city: item.city,
           total_revenue: roundNumber(item.metrics.total_revenue),
           total_tickets: item.metrics.total_tickets,
+          occupancy: roundNumber(item.metrics.occupancy ?? 0),
+          metrics: {
+            ...item.metrics,
+            occupancy: roundNumber(item.metrics.occupancy ?? 0)
+          },
           contribution:
             totalRevenue > 0
               ? roundNumber((Number(item.metrics.total_revenue || 0) * 100) / totalRevenue)
@@ -522,10 +528,18 @@ export async function getSalesRevenueByCinema({
           top_movie: item.top_movie
         }));
 
+      const limit = top_n != null && top_n !== "" ? Number(top_n) : null;
+      const breakdown =
+        limit && Number.isFinite(limit) && limit > 0 ? fullBreakdown.slice(0, limit) : fullBreakdown;
+
       return {
-        summary: cinemaStats.summary,
-        top_performing_cinema: breakdown[0] || null,
-        lowest_performing_cinema: breakdown[breakdown.length - 1] || null,
+        summary: {
+          ...cinemaStats.summary,
+          total_revenue_network: roundNumber(totalRevenue),
+          total_tickets_network: fullBreakdown.reduce((sum, row) => sum + Number(row.total_tickets || 0), 0)
+        },
+        top_performing_cinema: fullBreakdown[0] || null,
+        lowest_performing_cinema: fullBreakdown[fullBreakdown.length - 1] || null,
         breakdown
       };
     }
@@ -773,9 +787,32 @@ export async function getSalesTimeSlots({
         };
       });
 
+      const peakRow = breakdown.reduce(
+        (best, item) => (!best || item.revenue > best.revenue ? item : best),
+        null
+      );
+      const quietRow = breakdown.reduce(
+        (best, item) => (!best || item.revenue < best.revenue ? item : best),
+        null
+      );
+
       return {
-        peak_sales_hour: breakdown.reduce((best, item) => (!best || item.revenue > best.revenue ? item : best), null),
-        quiet_hour: breakdown.reduce((best, item) => (!best || item.revenue < best.revenue ? item : best), null),
+        peak_sales_hour: peakRow
+          ? {
+              time_slot: peakRow.time_slot,
+              revenue: peakRow.revenue,
+              demand: peakRow.demand,
+              occupancy: peakRow.occupancy,
+              recommendation: peakRow.recommendation
+            }
+          : null,
+        quiet_hour: quietRow
+          ? {
+              time_slot: quietRow.time_slot,
+              revenue: quietRow.revenue,
+              demand: quietRow.demand
+            }
+          : null,
         breakdown
       };
     }
@@ -801,17 +838,17 @@ export async function getSalesTrend({
   });
 
   return withCache(
-    "dashboard-sales-trend",
+    "dashboard-sales-trend-v2",
     { start_date, end_date, group_by, city, cinema_id, studio_id, movie_id },
     config.cacheTtlSeconds,
     async () => {
       const scope = buildScopeFilters({ city, cinema_id, studio_id, movie_id });
-      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "t.trans_time", "timestamp");
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
       const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
       const timeGroup =
         group_by === "monthly"
-          ? "TO_CHAR(DATE_TRUNC('month', t.trans_time::timestamp), 'YYYY-MM')"
-          : "TO_CHAR(DATE(t.trans_time::timestamp), 'YYYY-MM-DD')";
+          ? "TO_CHAR(DATE_TRUNC('month', CAST(s.show_date AS TIMESTAMP)), 'YYYY-MM')"
+          : "TO_CHAR(CAST(s.show_date AS DATE), 'YYYY-MM-DD')";
 
       const result = await query(
         `SELECT
@@ -828,6 +865,30 @@ export async function getSalesTrend({
         scope.params
       );
 
+      const yearlyScope = buildScopeFilters({ city, cinema_id, studio_id, movie_id });
+      const now = new Date();
+      const lastYear = new Date();
+      lastYear.setFullYear(now.getFullYear() - 1);
+
+      appendDateFilter(yearlyScope.params, yearlyScope.conditions, lastYear, now, "s.show_date", "date");
+
+      const yearlyWhereClause = yearlyScope.conditions.length ? `WHERE ${yearlyScope.conditions.join(" AND ")}` : "";
+
+      const yearlyResult = await query(
+        `SELECT
+          TO_CHAR(DATE_TRUNC('month', CAST(s.show_date AS TIMESTAMP)), 'Mon') AS month,
+          EXTRACT(MONTH FROM CAST(s.show_date AS DATE)) AS month_num,
+          COALESCE(SUM(t.final_price), 0)::float8 AS revenue
+        FROM tiket t
+        JOIN schedules s ON t.schedule_id = s.schedule_id
+        JOIN studio st ON s.studio_id = st.studio_id
+        JOIN cinema c ON st.cinema_id = c.cinema_id
+        ${yearlyWhereClause}
+        GROUP BY month, month_num
+        ORDER BY month_num`,
+        yearlyScope.params
+      );
+
       const breakdown = buildMovingAverageSeries(
         result.rows.map((row) => ({
           time_group: row.time_group,
@@ -836,16 +897,23 @@ export async function getSalesTrend({
         }))
       );
 
+      const yearlyBreakdown = yearlyResult.rows.map(row => ({
+        month: row.month,
+        revenue: roundNumber(row.revenue)
+      }));
+
       const currentRevenue = breakdown.reduce((total, item) => total + Number(item.revenue || 0), 0);
       const currentTickets = breakdown.reduce((total, item) => total + Number(item.total_tickets || 0), 0);
 
       return {
         summary: {
           group_by,
+          date_axis: "show_date",
           total_revenue: roundNumber(currentRevenue),
           total_tickets: currentTickets
         },
         forecast: buildForecast(breakdown, group_by),
+        yearly_breakdown: yearlyBreakdown,
         breakdown
       };
     }
@@ -965,12 +1033,12 @@ export async function getSalesPayment({
   });
 
   return withCache(
-    "dashboard-sales-payment",
+    "dashboard-sales-payment-v2",
     { start_date, end_date, city, cinema_id, studio_id, payment_type },
     config.cacheTtlSeconds,
     async () => {
       const scope = buildScopeFilters({ city, cinema_id, studio_id, payment_type });
-      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "t.trans_time", "timestamp");
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
       const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
       const result = await query(
@@ -1116,10 +1184,16 @@ export async function getSalesOperationalRisk({
           schedule_id: row.schedule_id,
           movie_id: row.movie_id,
           title: row.title,
+          movie: row.title
+            ? { movie_id: row.movie_id, title: row.title }
+            : null,
           studio_id: row.studio_id,
           cinema_id: row.cinema_id,
           cinema_name: row.cinema_name,
           city: row.city,
+          cinema: row.cinema_name
+            ? { cinema_id: row.cinema_id, cinema_name: row.cinema_name, city: row.city }
+            : null,
           show_date: row.show_date,
           start_time: row.start_time,
           status: row.status,
@@ -1142,12 +1216,12 @@ export async function getFilmsOverview({
   studio_id = null
 } = {}) {
   return withCache(
-    "dashboard-films-overview",
+    "dashboard-films-overview-v2",
     { start_date, end_date, city, cinema_id, studio_id },
     config.cacheTtlSeconds,
     async () => {
       const [movieStats, occupancy, summary, scheduleResult] = await Promise.all([
-        getMovieStats({ start_date, end_date, city, cinema_id }),
+        getMovieStats({ start_date, end_date, city, cinema_id, studio_id }),
         getOccupancy({ start_date, end_date, city, cinema_id, studio_id, group_by: "daily" }),
         getSummary({ start_date, end_date, city, cinema_id, studio_id, compare: true }),
         (async () => {
@@ -1209,8 +1283,11 @@ export async function getFilmsPerformance({
         })
         .slice(0, Number(top_n || 10));
 
+      
       const maxTickets = Math.max(...sorted.map((item) => item.total_tickets), 1);
       const maxRevenue = Math.max(...sorted.map((item) => item.total_revenue), 1);
+      const totalTicketsInView = sorted.reduce((sum, m) => sum + m.total_tickets, 0);
+      const totalRevenueInView = sorted.reduce((sum, m) => sum + Number(m.total_revenue || 0), 0);
 
       const breakdown = sorted.map((item, index) => ({
           rank: index + 1,
@@ -1218,6 +1295,17 @@ export async function getFilmsPerformance({
           title: item.title,
           total_tickets: item.total_tickets,
           total_revenue: roundNumber(item.total_revenue),
+          genre: item.genre?.[0] || "Unknown",
+          genres: Array.isArray(item.genre) ? item.genre : [],
+          rating: item.rating_usia || "SU",
+          rating_usia: item.rating_usia || "SU",
+          duration: item.duration_min || 0,
+          duration_min: item.duration_min || 0,
+          seat_distribution: item.seat_distribution || { Regular: 0, VIP: 0, Sweetbox: 0 },
+          share_of_tickets:
+            totalTicketsInView > 0 ? roundNumber((item.total_tickets * 100) / totalTicketsInView) : 0,
+          share_of_revenue:
+            totalRevenueInView > 0 ? roundNumber((Number(item.total_revenue || 0) * 100) / totalRevenueInView) : 0,
           blockbuster_score: roundNumber(
             ((item.total_tickets / maxTickets) * 0.6) + ((Number(item.total_revenue || 0) / maxRevenue) * 0.4)
           )
@@ -1641,6 +1729,69 @@ export async function getFilmsDistribution({
   );
 }
 
+// Menggabungkan seluruh panel analitik film dalam satu respons untuk mengurangi round-trip HTTP.
+export async function getFilmsAnalyticsBundle(query = {}) {
+  const topN = query.top_n != null && query.top_n !== "" ? Number(query.top_n) : 20;
+  const perfQuery = { ...query, top_n: topN };
+
+  const [overview, performance, schedules, occupancy, distribution, operational_risk] = await Promise.all([
+    getFilmsOverview(query),
+    getFilmsPerformance(perfQuery),
+    getFilmsSchedules(query),
+    getFilmsOccupancy(query),
+    getFilmsDistribution(query),
+    getFilmsOperationalRisk(query)
+  ]);
+
+  return {
+    overview,
+    performance,
+    schedules,
+    occupancy,
+    distribution,
+    operational_risk
+  };
+}
+
+// Menggabungkan seluruh panel analitik penjualan agar halaman sales bisa dimuat sekali panggil.
+export async function getSalesAnalyticsBundle(query = {}) {
+  const cinemaTop =
+    query.cinema_top_n != null && query.cinema_top_n !== "" ? Number(query.cinema_top_n) : 10;
+  const movieTop =
+    query.movie_top_n != null && query.movie_top_n !== "" ? Number(query.movie_top_n) : 7;
+
+  const [
+    overview,
+    revenue_by_cinema,
+    revenue_by_movie,
+    time_slots,
+    trend,
+    weekend_vs_weekday,
+    payment,
+    operational_risk
+  ] = await Promise.all([
+    getSalesOverview(query),
+    getSalesRevenueByCinema({ ...query, top_n: cinemaTop }),
+    getSalesRevenueByMovie({ ...query, top_n: movieTop }),
+    getSalesTimeSlots(query),
+    getSalesTrend(query),
+    getSalesWeekendVsWeekday(query),
+    getSalesPayment(query),
+    getSalesOperationalRisk(query)
+  ]);
+
+  return {
+    overview,
+    revenue_by_cinema,
+    revenue_by_movie,
+    time_slots,
+    trend,
+    weekend_vs_weekday,
+    payment,
+    operational_risk
+  };
+}
+
 // Menyajikan risiko operasional film agar issue show bisa ditindak dari halaman films.
 export async function getFilmsOperationalRisk(filters = {}) {
   const risk = await getSalesOperationalRisk(filters);
@@ -1901,7 +2052,7 @@ export async function getEarlyBlockbuster({
   });
 
   return withCache(
-    "analytics-early-blockbuster",
+    "analytics-early-blockbuster-v2",
     {
       start_date,
       end_date,
@@ -1917,11 +2068,11 @@ export async function getEarlyBlockbuster({
       const previousEnd = new Date(dateRange.startDate.getTime() - 1);
       const previousStart = new Date(previousEnd.getTime() - diff);
       const scope = buildScopeFilters({ city, cinema_id, studio_id });
-      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "t.trans_time", "timestamp");
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
       const currentWhere = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
       const previousScope = buildScopeFilters({ city, cinema_id, studio_id });
-      appendDateFilter(previousScope.params, previousScope.conditions, previousStart, previousEnd, "t.trans_time", "timestamp");
+      appendDateFilter(previousScope.params, previousScope.conditions, previousStart, previousEnd, "s.show_date", "date");
       const previousWhere = previousScope.conditions.length ? `WHERE ${previousScope.conditions.join(" AND ")}` : "";
 
       const [currentResult, previousResult] = await Promise.all([
@@ -1993,6 +2144,7 @@ export async function getEarlyBlockbuster({
 
       return {
         summary: {
+          date_axis: "show_date",
           min_tickets: Number(min_tickets),
           min_growth: Number(min_growth),
           detected_movies: breakdown.filter((item) => item.blockbuster_signal).length,

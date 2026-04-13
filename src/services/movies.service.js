@@ -1,5 +1,5 @@
 import { query } from "../db.js";
-import { resolveOptionalDateRange } from "../utils/date.js";
+import { formatDateOnly, resolveOptionalDateRange } from "../utils/date.js";
 import { createHttpError } from "../utils/http-error.js";
 import { validateFilters } from "../utils/validation.js";
 import { withCache } from "../utils/cache.js";
@@ -91,7 +91,7 @@ export async function getMoviePerformance(
   { city = null, cinema_id = null, start_date = null, end_date = null } = {}
 ) {
   return withCache(
-    "movie-performance",
+    "movie-performance-v2",
     { movieId, city, cinema_id, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {
@@ -116,8 +116,10 @@ export async function getMoviePerformance(
       }
 
       if (dateRange) {
-        params.push(dateRange.startDate.toISOString(), dateRange.endDate.toISOString());
-        filters.push(`t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`);
+        params.push(formatDateOnly(dateRange.startDate), formatDateOnly(dateRange.endDate));
+        filters.push(
+          `CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`
+        );
       }
 
       const whereClause = `WHERE ${filters.join(" AND ")}`;
@@ -136,7 +138,7 @@ export async function getMoviePerformance(
 
       const trendResult = await query(
         `SELECT
-        DATE(t.trans_time::timestamp) AS time_group,
+        CAST(s.show_date AS DATE) AS time_group,
         COUNT(t.tiket_id)::int AS tickets_sold,
         COALESCE(SUM(t.final_price), 0)::float8 AS revenue
      FROM tiket t
@@ -144,8 +146,8 @@ export async function getMoviePerformance(
      JOIN studio st ON s.studio_id = st.studio_id
      JOIN cinema c ON st.cinema_id = c.cinema_id
      WHERE ${filters.join(" AND ")}
-     GROUP BY DATE(t.trans_time::timestamp)
-     ORDER BY DATE(t.trans_time::timestamp)`,
+     GROUP BY CAST(s.show_date AS DATE)
+     ORDER BY CAST(s.show_date AS DATE)`,
         params
       );
 
