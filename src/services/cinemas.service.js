@@ -11,7 +11,7 @@ function roundMetric(value, digits = 2) {
 }
 
 // Menyusun filter bioskop agar list, stats, dan performance memakai logika yang sama.
-function buildCinemaFilters({ city = null, cinema_id = null } = {}) {
+function buildCinemaFilters({ city = null, cinema_id = null, studio_id = null } = {}) {
   const params = [];
   const filters = [];
 
@@ -25,6 +25,18 @@ function buildCinemaFilters({ city = null, cinema_id = null } = {}) {
     filters.push(`c.cinema_id = $${params.length}`);
   }
 
+  if (studio_id) {
+    params.push(studio_id);
+    filters.push(
+      `EXISTS (
+        SELECT 1
+        FROM studio st_filter
+        WHERE st_filter.cinema_id = c.cinema_id
+          AND st_filter.studio_id = $${params.length}
+      )`
+    );
+  }
+
   return {
     params,
     whereClause: filters.length ? `WHERE ${filters.join(" AND ")}` : ""
@@ -32,21 +44,43 @@ function buildCinemaFilters({ city = null, cinema_id = null } = {}) {
 }
 
 // Menyusun query agregat per bioskop yang dipakai dashboard dan endpoint stats/cinema.
-async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_date = null, end_date = null } = {}) {
+async function getCinemaBreakdownRows({
+  city = null,
+  cinema_id = null,
+  studio_id = null,
+  movie_id = null,
+  start_date = null,
+  end_date = null
+} = {}) {
   await validateFilters({
     city,
-    cinemaId: cinema_id
+    cinemaId: cinema_id,
+    studioId: studio_id
   });
 
   const dateRange = resolveOptionalDateRange(start_date, end_date);
-  const { params, whereClause } = buildCinemaFilters({ city, cinema_id });
-  let scheduleDateFilter = "";
+  const { params, whereClause } = buildCinemaFilters({ city, cinema_id, studio_id });
+  let ticketDateFilter = "";
+  const salesFilters = [];
+  const activeMovieFilters = [];
+
+  if (movie_id) {
+    params.push(movie_id);
+    salesFilters.push(`s.movie_id = $${params.length}`);
+    activeMovieFilters.push(`s.movie_id = $${params.length}`);
+  }
 
   if (dateRange) {
+    params.push(dateRange.startDate, dateRange.endDate);
+    ticketDateFilter = `AND t.trans_time::timestamp BETWEEN $${params.length - 1} AND $${params.length}`;
     params.push(formatDateOnly(dateRange.startDate), formatDateOnly(dateRange.endDate));
-    scheduleDateFilter =
-      `AND CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`;
+    activeMovieFilters.push(
+      `CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`
+    );
   }
+
+  const salesWhereClause = salesFilters.length ? `AND ${salesFilters.join(" AND ")}` : "";
+  const activeMovieWhereClause = activeMovieFilters.length ? `AND ${activeMovieFilters.join(" AND ")}` : "";
 
   const result = await query(
     `WITH filtered_cinemas AS (
@@ -65,15 +99,24 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
           fc.city,
           fc.address,
           COUNT(t.tiket_id)::int AS total_tickets,
-          COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
-          COUNT(DISTINCT s.movie_id)::int AS active_movies,
+          COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS total_revenue,
           COUNT(DISTINCT CASE WHEN t.tiket_id IS NOT NULL THEN st.studio_id END)::int AS active_studios
         FROM filtered_cinemas fc
         LEFT JOIN studio st ON fc.cinema_id = st.cinema_id
         LEFT JOIN schedules s ON st.studio_id = s.studio_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-        WHERE 1 = 1 ${scheduleDateFilter}
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        WHERE 1 = 1 ${salesWhereClause}
         GROUP BY fc.cinema_id, fc.cinema_name, fc.city, fc.address
+      ),
+      active_movie_metrics AS (
+        SELECT
+          fc.cinema_id,
+          COUNT(DISTINCT s.movie_id)::int AS active_movies
+        FROM filtered_cinemas fc
+        JOIN studio st ON fc.cinema_id = st.cinema_id
+        JOIN schedules s ON st.studio_id = s.studio_id
+        WHERE 1 = 1 ${activeMovieWhereClause}
+        GROUP BY fc.cinema_id
       ),
       top_movie_ranked AS (
         SELECT
@@ -89,8 +132,8 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         JOIN studio st ON fc.cinema_id = st.cinema_id
         JOIN schedules s ON st.studio_id = s.studio_id
         JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-        WHERE 1 = 1 ${scheduleDateFilter}
+        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        WHERE 1 = 1 ${salesWhereClause}
         GROUP BY fc.cinema_id, m.movie_id, m.title
       ),
       top_genre_ranked AS (
@@ -108,7 +151,7 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         JOIN movies m ON s.movie_id = m.movie_id
         LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
         CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
-        WHERE TRIM(genre_item) <> '' ${scheduleDateFilter}
+        WHERE TRIM(genre_item) <> '' ${salesWhereClause}
         GROUP BY fc.cinema_id, TRIM(genre_item)
       ),
       cinema_schedule_capacity AS (
@@ -128,7 +171,7 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         cm.address,
         cm.total_tickets,
         cm.total_revenue,
-        cm.active_movies,
+        COALESCE(amm.active_movies, 0)::int AS active_movies,
         cm.active_studios,
         COALESCE(csc.total_capacity, 0)::bigint AS total_capacity,
         tm.movie_id AS top_movie_id,
@@ -137,7 +180,8 @@ async function getCinemaBreakdownRows({ city = null, cinema_id = null, start_dat
         tg.genre AS top_genre,
         tg.tickets_sold AS top_genre_tickets_sold
       FROM cinema_metrics cm
-      LEFT JOIN cinema_schedule_capacity csc ON cm.cinema_id = csc.cinema_id
+      LEFT JOIN active_movie_metrics amm
+        ON cm.cinema_id = amm.cinema_id
       LEFT JOIN top_movie_ranked tm
         ON cm.cinema_id = tm.cinema_id
         AND tm.row_num = 1
@@ -279,7 +323,7 @@ export async function getCinemaDetail(cinemaId) {
 // Menghitung performa satu bioskop pada rentang tanggal tertentu untuk halaman drill-down.
 export async function getCinemaPerformance(cinemaId, { start_date = null, end_date = null } = {}) {
   return withCache(
-    "cinema-performance",
+    "cinema-performance-v2",
     { cinemaId, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {
@@ -306,23 +350,52 @@ export async function getCinemaPerformance(cinemaId, { start_date = null, end_da
 }
 
 // Mengembalikan ringkasan agregat per bioskop tanpa metadata master yang terlalu besar.
-export async function getCinemaStats({ city = null, cinema_id = null, start_date = null, end_date = null } = {}) {
+export async function getCinemaStats({
+  city = null,
+  cinema_id = null,
+  studio_id = null,
+  movie_id = null,
+  start_date = null,
+  end_date = null
+} = {}) {
   return withCache(
-    "stats-cinema-v2",
-    { city, cinema_id, start_date, end_date },
+    "stats-cinema-v4",
+    { city, cinema_id, studio_id, movie_id, start_date, end_date },
     config.cacheTtlSeconds,
     async () => {
       const rows = await getCinemaBreakdownRows({
         city,
         cinema_id,
+        studio_id,
+        movie_id,
         start_date,
         end_date
       });
 
+      const summary = rows.reduce(
+        (accumulator, row) => ({
+          total_cinemas: accumulator.total_cinemas + 1,
+          active_cinemas: accumulator.active_cinemas + (row.metrics.total_tickets > 0 ? 1 : 0),
+          total_tickets: accumulator.total_tickets + Number(row.metrics.total_tickets || 0),
+          total_revenue: accumulator.total_revenue + Number(row.metrics.total_revenue || 0)
+        }),
+        {
+          total_cinemas: 0,
+          active_cinemas: 0,
+          total_tickets: 0,
+          total_revenue: 0
+        }
+      );
+
+      const activeMovies = rows.reduce((max, row) => Math.max(max, Number(row.metrics.active_movies || 0)), 0);
+
       return {
         summary: {
-          total_cinemas: rows.length,
-          active_cinemas: rows.filter((item) => item.metrics.total_tickets > 0).length
+          total_cinemas: summary.total_cinemas,
+          active_cinemas: summary.active_cinemas,
+          total_tickets: summary.total_tickets,
+          total_revenue: Number(summary.total_revenue.toFixed(2)),
+          active_movies: activeMovies
         },
         breakdown: rows.map((row) => ({
           cinema_id: row.cinema_id,

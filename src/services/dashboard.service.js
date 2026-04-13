@@ -182,6 +182,54 @@ function buildForecast(breakdown, group_by) {
   };
 }
 
+// Menghasilkan ranking sales per film berdasarkan waktu transaksi agar selaras dengan KPI summary/trend.
+async function getMovieSalesByTransactionTime({
+  start_date,
+  end_date,
+  city = null,
+  cinema_id = null,
+  studio_id = null,
+  top_n = null
+} = {}) {
+  const dateRange = resolveDateRange(start_date, end_date, "daily");
+
+  await validateFilters({
+    city,
+    cinemaId: cinema_id,
+    studioId: studio_id
+  });
+
+  const scope = buildScopeFilters({ city, cinema_id, studio_id });
+  appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "t.trans_time", "timestamp");
+  const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
+  const limitClause = Number(top_n || 0) > 0 ? `LIMIT ${Number(top_n)}` : "";
+
+  const result = await query(
+    `SELECT
+      s.movie_id,
+      m.title,
+      COUNT(t.tiket_id)::int AS total_tickets,
+      COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS total_revenue
+    FROM tiket t
+    JOIN schedules s ON t.schedule_id = s.schedule_id
+    JOIN movies m ON s.movie_id = m.movie_id
+    JOIN studio st ON s.studio_id = st.studio_id
+    JOIN cinema c ON st.cinema_id = c.cinema_id
+    ${whereClause}
+    GROUP BY s.movie_id, m.title
+    ORDER BY COUNT(t.tiket_id) DESC, COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0) DESC, m.title ASC
+    ${limitClause}`,
+    scope.params
+  );
+
+  return result.rows.map((row) => ({
+    movie_id: row.movie_id,
+    title: row.title,
+    total_tickets: Number(row.total_tickets || 0),
+    total_revenue: Number(row.total_revenue || 0)
+  }));
+}
+
 // Menghitung label rekomendasi sederhana berdasarkan gap demand dan monetisasi per slot.
 function buildTimeSlotRecommendation(item) {
   if (item.optimization_score >= 0.6 && item.occupancy >= 70) {
@@ -213,7 +261,12 @@ async function getCityRevenueRows(filters, dateRange) {
         s.schedule_id,
         st.total_capacity,
         COUNT(t.tiket_id)::int AS total_tickets,
-        COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue
+        COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
+        CASE
+          WHEN st.total_capacity > 0
+            THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+          ELSE 0
+        END AS schedule_occupancy
       FROM schedules s
       JOIN studio st ON s.studio_id = st.studio_id
       JOIN cinema c ON st.cinema_id = c.cinema_id
@@ -227,7 +280,8 @@ async function getCityRevenueRows(filters, dateRange) {
       SUM(total_tickets)::int AS total_tickets,
       SUM(total_revenue)::float8 AS total_revenue,
       SUM(total_capacity)::int AS total_capacity,
-      COUNT(schedule_id)::int AS total_shows
+      COUNT(schedule_id)::int AS total_shows,
+      AVG(schedule_occupancy)::float8 AS avg_occupancy
     FROM per_schedule
     GROUP BY city
     ORDER BY SUM(total_revenue) DESC, SUM(total_tickets) DESC, city ASC`,
@@ -241,10 +295,7 @@ async function getCityRevenueRows(filters, dateRange) {
     total_revenue: Number(row.total_revenue || 0),
     total_capacity: Number(row.total_capacity || 0),
     total_shows: Number(row.total_shows || 0),
-    avg_occupancy:
-      Number(row.total_capacity || 0) > 0
-        ? roundNumber((Number(row.total_tickets || 0) * 100) / Number(row.total_capacity || 0))
-        : 0,
+    avg_occupancy: roundNumber(Number(row.avg_occupancy || 0) * 100),
     lat: null,
     lng: null,
     is_mock_location: true
@@ -512,12 +563,12 @@ export async function getSalesRevenueByStudio({
   });
 
   return withCache(
-    "dashboard-sales-revenue-by-studio",
+    "dashboard-sales-revenue-by-studio-v3",
     { start_date, end_date, city, cinema_id, studio_id },
     config.cacheTtlSeconds,
     async () => {
       const scope = buildScopeFilters({ city, cinema_id, studio_id });
-      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
+      appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "t.trans_time", "timestamp");
       const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
       const result = await query(
@@ -531,7 +582,12 @@ export async function getSalesRevenueByStudio({
             s.schedule_id,
             st.total_capacity,
             COUNT(t.tiket_id)::int AS total_tickets,
-            COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue
+            COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS total_revenue,
+            CASE
+              WHEN st.total_capacity > 0
+                THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+              ELSE 0
+            END AS schedule_occupancy
           FROM studio st
           JOIN cinema c ON st.cinema_id = c.cinema_id
           LEFT JOIN schedules s ON st.studio_id = s.studio_id
@@ -555,7 +611,8 @@ export async function getSalesRevenueByStudio({
           COUNT(schedule_id)::int AS total_shows,
           COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
           COALESCE(SUM(total_revenue), 0)::float8 AS total_revenue,
-          COALESCE(SUM(CASE WHEN schedule_id IS NOT NULL THEN total_capacity ELSE 0 END), 0)::int AS total_capacity
+          COALESCE(SUM(CASE WHEN schedule_id IS NOT NULL THEN total_capacity ELSE 0 END), 0)::int AS total_capacity,
+          COALESCE(AVG(schedule_occupancy), 0)::float8 AS avg_occupancy
         FROM studio_schedule_stats
         GROUP BY studio_id, studio_name, cinema_id, cinema_name, city
         ORDER BY COALESCE(SUM(total_revenue), 0) DESC, COALESCE(SUM(total_tickets), 0) DESC, studio_name ASC`,
@@ -567,6 +624,7 @@ export async function getSalesRevenueByStudio({
         const totalTickets = Number(row.total_tickets || 0);
         const totalRevenue = Number(row.total_revenue || 0);
         const totalCapacity = Number(row.total_capacity || 0);
+        const averageOccupancy = Number(row.avg_occupancy || 0);
 
         return {
           rank: index + 1,
@@ -579,7 +637,7 @@ export async function getSalesRevenueByStudio({
           total_tickets: totalTickets,
           total_revenue: roundNumber(totalRevenue),
           avg_revenue_per_show: totalShows > 0 ? roundNumber(totalRevenue / totalShows) : 0,
-          occupancy: totalCapacity > 0 ? roundNumber((totalTickets * 100) / totalCapacity) : 0
+          occupancy: roundNumber(averageOccupancy * 100)
         };
       });
 
@@ -605,25 +663,31 @@ export async function getSalesRevenueByMovie({
   end_date,
   city = null,
   cinema_id = null,
+  studio_id = null,
   top_n = 10
 } = {}) {
   return withCache(
-    "dashboard-sales-revenue-by-movie",
-    { start_date, end_date, city, cinema_id, top_n },
+    "dashboard-sales-revenue-by-movie-v3",
+    { start_date, end_date, city, cinema_id, studio_id, top_n },
     config.cacheTtlSeconds,
     async () => {
-      const movies = await getMoviesBySales({ start_date, end_date, city, cinema_id });
-      const ranked = [...movies].sort((left, right) => right.revenue - left.revenue);
-      const totalRevenue = ranked.reduce((total, item) => total + Number(item.revenue || 0), 0);
+      const ranked = await getMovieSalesByTransactionTime({
+        start_date,
+        end_date,
+        city,
+        cinema_id,
+        studio_id
+      });
+      const totalRevenue = ranked.reduce((total, item) => total + Number(item.total_revenue || 0), 0);
 
       const breakdown = ranked.slice(0, Number(top_n || 10)).map((item, index) => ({
         rank: index + 1,
         movie_id: item.movie_id,
         title: item.title,
-        total_revenue: roundNumber(item.revenue),
-        total_tickets: item.tickets_sold,
+        total_revenue: roundNumber(item.total_revenue),
+        total_tickets: item.total_tickets,
         contribution:
-          totalRevenue > 0 ? roundNumber((Number(item.revenue || 0) * 100) / totalRevenue) : 0
+          totalRevenue > 0 ? roundNumber((Number(item.total_revenue || 0) * 100) / totalRevenue) : 0
       }));
 
       return {
@@ -1195,36 +1259,42 @@ export async function getFilmsPerformance({
   end_date,
   city = null,
   cinema_id = null,
+  studio_id = null,
   top_n = 10
 } = {}) {
   return withCache(
-    "dashboard-films-performance",
-    { start_date, end_date, city, cinema_id, top_n },
+    "dashboard-films-performance-v3",
+    { start_date, end_date, city, cinema_id, studio_id, top_n },
     config.cacheTtlSeconds,
     async () => {
-      const movies = await getMoviesBySales({ start_date, end_date, city, cinema_id });
-
-      const sorted = [...movies]
+      const sorted = (await getMovieSalesByTransactionTime({
+        start_date,
+        end_date,
+        city,
+        cinema_id,
+        studio_id
+      }))
         .sort((left, right) => {
-          if (right.tickets_sold !== left.tickets_sold) {
-            return right.tickets_sold - left.tickets_sold;
+          if (right.total_tickets !== left.total_tickets) {
+            return right.total_tickets - left.total_tickets;
           }
 
-          return right.revenue - left.revenue;
+          return right.total_revenue - left.total_revenue;
         })
         .slice(0, Number(top_n || 10));
 
-      const maxTickets = Math.max(...sorted.map((item) => item.tickets_sold), 1);
-      const maxRevenue = Math.max(...sorted.map((item) => item.revenue), 1);
-      const totalTicketsInView = sorted.reduce((sum, m) => sum + m.tickets_sold, 0);
-      const totalRevenueInView = sorted.reduce((sum, m) => sum + Number(m.revenue || 0), 0);
+      
+      const maxTickets = Math.max(...sorted.map((item) => item.total_tickets), 1);
+      const maxRevenue = Math.max(...sorted.map((item) => item.total_revenue), 1);
+      const totalTicketsInView = sorted.reduce((sum, m) => sum + m.total_tickets, 0);
+      const totalRevenueInView = sorted.reduce((sum, m) => sum + Number(m.total_revenue || 0), 0);
 
       const breakdown = sorted.map((item, index) => ({
           rank: index + 1,
           movie_id: item.movie_id,
           title: item.title,
-          total_tickets: item.tickets_sold,
-          total_revenue: roundNumber(item.revenue),
+          total_tickets: item.total_tickets,
+          total_revenue: roundNumber(item.total_revenue),
           genre: item.genre?.[0] || "Unknown",
           genres: Array.isArray(item.genre) ? item.genre : [],
           rating: item.rating_usia || "SU",
@@ -1233,11 +1303,11 @@ export async function getFilmsPerformance({
           duration_min: item.duration_min || 0,
           seat_distribution: item.seat_distribution || { Regular: 0, VIP: 0, Sweetbox: 0 },
           share_of_tickets:
-            totalTicketsInView > 0 ? roundNumber((item.tickets_sold * 100) / totalTicketsInView) : 0,
+            totalTicketsInView > 0 ? roundNumber((item.total_tickets * 100) / totalTicketsInView) : 0,
           share_of_revenue:
-            totalRevenueInView > 0 ? roundNumber((Number(item.revenue || 0) * 100) / totalRevenueInView) : 0,
+            totalRevenueInView > 0 ? roundNumber((Number(item.total_revenue || 0) * 100) / totalRevenueInView) : 0,
           blockbuster_score: roundNumber(
-            ((item.tickets_sold / maxTickets) * 0.6) + ((Number(item.revenue || 0) / maxRevenue) * 0.4)
+            ((item.total_tickets / maxTickets) * 0.6) + ((Number(item.total_revenue || 0) / maxRevenue) * 0.4)
           )
         }));
 
@@ -1432,7 +1502,12 @@ export async function getFilmsOccupancy({
                 s.movie_id,
                 m.title,
                 st.total_capacity,
-                COUNT(t.tiket_id)::int AS total_tickets
+                COUNT(t.tiket_id)::int AS total_tickets,
+                CASE
+                  WHEN st.total_capacity > 0
+                    THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+                  ELSE 0
+                END AS schedule_occupancy
               FROM schedules s
               JOIN movies m ON s.movie_id = m.movie_id
               JOIN studio st ON s.studio_id = st.studio_id
@@ -1445,7 +1520,8 @@ export async function getFilmsOccupancy({
               movie_id,
               title,
               COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
-              COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+              COALESCE(SUM(total_capacity), 0)::int AS total_capacity,
+              COALESCE(AVG(schedule_occupancy), 0)::float8 AS avg_occupancy
             FROM per_schedule
             GROUP BY movie_id, title
             ORDER BY COALESCE(SUM(total_tickets), 0) DESC, title ASC`,
@@ -1463,7 +1539,12 @@ export async function getFilmsOccupancy({
                 s.schedule_id,
                 s.show_date,
                 st.total_capacity,
-                COUNT(t.tiket_id)::int AS total_tickets
+                COUNT(t.tiket_id)::int AS total_tickets,
+                CASE
+                  WHEN st.total_capacity > 0
+                    THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+                  ELSE 0
+                END AS schedule_occupancy
               FROM schedules s
               JOIN studio st ON s.studio_id = st.studio_id
               JOIN cinema c ON st.cinema_id = c.cinema_id
@@ -1474,7 +1555,8 @@ export async function getFilmsOccupancy({
             SELECT
               show_date,
               COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
-              COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+              COALESCE(SUM(total_capacity), 0)::int AS total_capacity,
+              COALESCE(AVG(schedule_occupancy), 0)::float8 AS avg_occupancy
             FROM per_schedule
             GROUP BY show_date
             ORDER BY CAST(show_date AS DATE)`,
@@ -1493,7 +1575,12 @@ export async function getFilmsOccupancy({
                 st.studio_id,
                 st.studio_name,
                 st.total_capacity,
-                COUNT(t.tiket_id)::int AS total_tickets
+                COUNT(t.tiket_id)::int AS total_tickets,
+                CASE
+                  WHEN st.total_capacity > 0
+                    THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+                  ELSE 0
+                END AS schedule_occupancy
               FROM schedules s
               JOIN studio st ON s.studio_id = st.studio_id
               JOIN cinema c ON st.cinema_id = c.cinema_id
@@ -1505,7 +1592,8 @@ export async function getFilmsOccupancy({
               studio_id,
               studio_name,
               COALESCE(SUM(total_tickets), 0)::int AS total_tickets,
-              COALESCE(SUM(total_capacity), 0)::int AS total_capacity
+              COALESCE(SUM(total_capacity), 0)::int AS total_capacity,
+              COALESCE(AVG(schedule_occupancy), 0)::float8 AS avg_occupancy
             FROM per_schedule
             GROUP BY studio_id, studio_name
             ORDER BY COALESCE(SUM(total_tickets), 0) DESC, studio_name ASC`,
@@ -1516,10 +1604,7 @@ export async function getFilmsOccupancy({
 
       const averageOccupancy = Number(overall.summary.occupancy || 0);
       const movieBreakdown = movieBreakdownResult.rows.map((row) => {
-        const occupancy =
-          Number(row.total_capacity || 0) > 0
-            ? roundNumber((Number(row.total_tickets || 0) * 100) / Number(row.total_capacity || 0))
-            : 0;
+        const occupancy = roundNumber(Number(row.avg_occupancy || 0) * 100);
 
         return {
           movie_id: row.movie_id,
@@ -1545,20 +1630,14 @@ export async function getFilmsOccupancy({
           show_date: row.show_date,
           total_tickets: Number(row.total_tickets || 0),
           total_capacity: Number(row.total_capacity || 0),
-          occupancy:
-            Number(row.total_capacity || 0) > 0
-              ? roundNumber((Number(row.total_tickets || 0) * 100) / Number(row.total_capacity || 0))
-              : 0
+          occupancy: roundNumber(Number(row.avg_occupancy || 0) * 100)
         })),
         by_studio: studioBreakdownResult.rows.map((row) => ({
           studio_id: row.studio_id,
           studio_name: row.studio_name,
           total_tickets: Number(row.total_tickets || 0),
           total_capacity: Number(row.total_capacity || 0),
-          occupancy:
-            Number(row.total_capacity || 0) > 0
-              ? roundNumber((Number(row.total_tickets || 0) * 100) / Number(row.total_capacity || 0))
-              : 0
+          occupancy: roundNumber(Number(row.avg_occupancy || 0) * 100)
         }))
       };
     }

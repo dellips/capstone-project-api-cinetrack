@@ -57,7 +57,7 @@ export async function getSummary({
 
   return withCache(
     "stats-summary-v3",
-    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare) },
+    { start_date, end_date, period, city, cinema_id, studio_id, compare: String(compare), occupancy_mode: "avg_schedule" },
     config.cacheTtlSeconds,
     async () => {
       const runQuery = async (start, end) => {
@@ -76,40 +76,31 @@ export async function getSummary({
           `WITH schedule_stats AS (
           SELECT
             s.schedule_id,
-            s.studio_id,
             st.total_capacity,
-            COUNT(t.tiket_id) AS tickets
+            COUNT(t.tiket_id)::int AS tickets,
+            CASE
+              WHEN st.total_capacity > 0
+                THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+              ELSE 0
+            END AS schedule_occupancy
           FROM schedules s
           JOIN studio st ON s.studio_id = st.studio_id
           LEFT JOIN tiket t ON t.schedule_id = s.schedule_id
           JOIN cinema c ON st.cinema_id = c.cinema_id
           WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)${extraFilterSql}
-          GROUP BY s.schedule_id, s.studio_id, st.total_capacity
-        ),
-        studio_occupancy AS (
-          SELECT
-            studio_id,
-            COALESCE(SUM(tickets), 0)::float8 AS total_tickets_for_occupancy,
-            COALESCE(SUM(total_capacity), 0)::float8 AS total_capacity,
-            CASE
-              WHEN COALESCE(SUM(total_capacity), 0) > 0
-                THEN COALESCE(SUM(tickets), 0)::float8 / COALESCE(SUM(total_capacity), 0)::float8
-              ELSE 0
-            END AS occupancy
-          FROM schedule_stats
-          GROUP BY studio_id
+          GROUP BY s.schedule_id, st.total_capacity
         ),
         occupancy_agg AS (
           SELECT
-            COALESCE(SUM(total_tickets_for_occupancy), 0)::float8 AS total_tickets_for_occupancy,
+            COALESCE(SUM(tickets), 0)::float8 AS total_tickets_for_occupancy,
             COALESCE(SUM(total_capacity), 0)::float8 AS total_capacity,
-            COALESCE(AVG(occupancy), 0)::float8 AS avg_studio_occupancy
-          FROM studio_occupancy
+            COALESCE(AVG(schedule_occupancy), 0)::float8 AS avg_schedule_occupancy
+          FROM schedule_stats
         ),
         ticket_agg AS (
           SELECT
             COUNT(t.tiket_id)::int AS total_tickets,
-            COALESCE(SUM(t.final_price), 0)::float8 AS revenue,
+            COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS revenue,
             COUNT(DISTINCT s.schedule_id)::int AS total_transactions,
             COUNT(DISTINCT c.cinema_id)::int AS cinema_aktif
           FROM tiket t
@@ -125,7 +116,7 @@ export async function getSummary({
           ta.cinema_aktif,
           oa.total_tickets_for_occupancy,
           oa.total_capacity,
-          oa.avg_studio_occupancy
+          oa.avg_schedule_occupancy
         FROM ticket_agg ta
         CROSS JOIN occupancy_agg oa`,
           params
@@ -137,10 +128,7 @@ export async function getSummary({
           total_tickets: Number(row.total_tickets || 0),
           total_capacity: Number(row.total_capacity || 0),
           revenue: Number(row.revenue || 0),
-          avg_occupancy:
-            Number(row.total_capacity || 0) > 0
-              ? Number((((Number(row.total_tickets_for_occupancy || 0) * 100) / Number(row.total_capacity || 0))).toFixed(2))
-              : 0,
+          avg_occupancy: Number((Number(row.avg_schedule_occupancy || 0) * 100).toFixed(2)),
           total_transactions: Number(row.total_transactions || 0),
           cinema_aktif: Number(row.cinema_aktif || 0)
         };
@@ -253,7 +241,7 @@ export async function getTrends({
           `SELECT
           ${timeExpression} AS time_group,
           COUNT(t.tiket_id)::int AS tickets_sold,
-          COALESCE(SUM(t.final_price), 0)::float8 AS revenue
+          COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS revenue
        FROM tiket t
        JOIN schedules s ON t.schedule_id = s.schedule_id
        JOIN studio st ON s.studio_id = st.studio_id
@@ -360,7 +348,7 @@ export async function getOccupancy({
       : "CAST(s.show_date AS DATE)";
 
   return withCache(
-    "stats-occupancy-v2",
+    "stats-occupancy-v3",
     { start_date, end_date, group_by, cinema_id, studio_id, movie_id, city },
     config.cacheTtlSeconds,
     async () => {
@@ -370,7 +358,12 @@ export async function getOccupancy({
           s.schedule_id,
           ${groupExpression} AS time_group,
           st.total_capacity,
-          COALESCE(COUNT(t.tiket_id), 0)::int AS total_tickets
+          COALESCE(COUNT(t.tiket_id), 0)::int AS total_tickets,
+          CASE
+            WHEN st.total_capacity > 0
+              THEN COALESCE(COUNT(t.tiket_id), 0)::float8 / st.total_capacity::float8
+            ELSE 0
+          END AS schedule_occupancy
         FROM schedules s
         JOIN studio st ON s.studio_id = st.studio_id
         JOIN cinema c ON st.cinema_id = c.cinema_id
@@ -383,7 +376,9 @@ export async function getOccupancy({
         SELECT
           time_group,
           SUM(total_tickets)::int AS total_tickets,
-          SUM(total_capacity)::int AS total_capacity
+          SUM(total_capacity)::int AS total_capacity,
+          COUNT(schedule_id)::int AS total_schedules,
+          AVG(schedule_occupancy)::float8 AS avg_occupancy
         FROM per_schedule
         GROUP BY time_group
       )
@@ -391,10 +386,8 @@ export async function getOccupancy({
         time_group,
         total_tickets,
         total_capacity,
-        CASE
-          WHEN total_capacity > 0 THEN total_tickets::float8 / total_capacity
-          ELSE 0
-        END AS occupancy
+        total_schedules,
+        avg_occupancy AS occupancy
       FROM grouped_occupancy
       ORDER BY time_group`,
         params
@@ -404,15 +397,18 @@ export async function getOccupancy({
         time_group: row.time_group,
         total_tickets: Number(row.total_tickets || 0),
         total_capacity: Number(row.total_capacity || 0),
+        total_schedules: Number(row.total_schedules || 0),
         occupancy: Number((Number(row.occupancy || 0) * 100).toFixed(2))
       }));
 
       const totals = breakdown.reduce(
         (accumulator, item) => ({
           total_tickets: accumulator.total_tickets + item.total_tickets,
-          total_capacity: accumulator.total_capacity + item.total_capacity
+          total_capacity: accumulator.total_capacity + item.total_capacity,
+          total_schedules: accumulator.total_schedules + item.total_schedules,
+          weighted_occupancy: accumulator.weighted_occupancy + (item.occupancy * item.total_schedules)
         }),
-        { total_tickets: 0, total_capacity: 0 }
+        { total_tickets: 0, total_capacity: 0, total_schedules: 0, weighted_occupancy: 0 }
       );
 
       return {
@@ -421,11 +417,11 @@ export async function getOccupancy({
           total_tickets: totals.total_tickets,
           total_capacity: totals.total_capacity,
           occupancy:
-            totals.total_capacity > 0
-              ? Number((((totals.total_tickets * 100) / totals.total_capacity)).toFixed(2))
+            totals.total_schedules > 0
+              ? Number((totals.weighted_occupancy / totals.total_schedules).toFixed(2))
               : 0
         },
-        breakdown
+        breakdown: breakdown.map(({ total_schedules, ...item }) => item)
       };
     }
   );
@@ -605,6 +601,225 @@ export async function getMovieStats({
             Sweetbox: Number(row.sweetbox_seats || 0)
           }
         }))
+      };
+    }
+  );
+}
+
+// Membuat prediksi harian sederhana berbasis pola weekday dari beberapa minggu terakhir.
+export async function getForecast({
+  start_date = null,
+  end_date = null,
+  city = null,
+  cinema_id = null,
+  studio_id = null,
+  movie_id = null,
+  days_ahead = 7,
+  lookback_weeks = 4
+} = {}) {
+  await validateFilters({
+    city,
+    cinemaId: cinema_id,
+    studioId: studio_id
+  });
+
+  const parsedDaysAhead = Math.max(1, Number(days_ahead || 7));
+  const parsedLookbackWeeks = Math.max(1, Number(lookback_weeks || 4));
+  const now = new Date();
+  const defaultForecastStart = new Date(now);
+  defaultForecastStart.setDate(defaultForecastStart.getDate() + 1);
+  defaultForecastStart.setHours(0, 0, 0, 0);
+  const defaultForecastEnd = new Date(defaultForecastStart);
+  defaultForecastEnd.setDate(defaultForecastEnd.getDate() + parsedDaysAhead - 1);
+  defaultForecastEnd.setHours(23, 59, 59, 999);
+
+  const forecastWindow =
+    start_date && end_date
+      ? resolveDateRange(start_date, end_date, "daily")
+      : {
+          startDate: defaultForecastStart,
+          endDate: defaultForecastEnd
+        };
+
+  const historyEnd = new Date(forecastWindow.startDate.getTime() - 1);
+  const historyStart = new Date(historyEnd);
+  historyStart.setDate(historyStart.getDate() - (parsedLookbackWeeks * 7) + 1);
+  historyStart.setHours(0, 0, 0, 0);
+
+  const buildForecastFilters = (params, aliases = { cinema: "c", studio: "st", schedule: "s" }) => {
+    const filters = [];
+
+    if (city) {
+      params.push(city);
+      filters.push(`${aliases.cinema}.city = $${params.length}`);
+    }
+
+    if (cinema_id) {
+      params.push(cinema_id);
+      filters.push(`${aliases.studio}.cinema_id = $${params.length}`);
+    }
+
+    if (studio_id) {
+      params.push(studio_id);
+      filters.push(`${aliases.schedule}.studio_id = $${params.length}`);
+    }
+
+    if (movie_id) {
+      params.push(movie_id);
+      filters.push(`${aliases.schedule}.movie_id = $${params.length}`);
+    }
+
+    return filters;
+  };
+
+  return withCache(
+    "stats-forecast-v1",
+    {
+      start_date,
+      end_date,
+      city,
+      cinema_id,
+      studio_id,
+      movie_id,
+      days_ahead: String(parsedDaysAhead),
+      lookback_weeks: String(parsedLookbackWeeks)
+    },
+    config.cacheTtlSeconds,
+    async () => {
+      const salesParams = [historyStart, historyEnd];
+      const salesFilters = buildForecastFilters(salesParams);
+      const salesResult = await query(
+        `SELECT
+          DATE(t.trans_time::timestamp) AS metric_date,
+          EXTRACT(DOW FROM DATE(t.trans_time::timestamp))::int AS weekday_number,
+          COUNT(t.tiket_id)::int AS total_tickets,
+          COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS revenue
+        FROM tiket t
+        JOIN schedules s ON t.schedule_id = s.schedule_id
+        JOIN studio st ON s.studio_id = st.studio_id
+        JOIN cinema c ON st.cinema_id = c.cinema_id
+        WHERE CAST(t.trans_time AS TIMESTAMP) BETWEEN $1 AND $2
+        ${salesFilters.length ? `AND ${salesFilters.join(" AND ")}` : ""}
+        GROUP BY DATE(t.trans_time::timestamp)
+        ORDER BY DATE(t.trans_time::timestamp)`,
+        salesParams
+      );
+
+      const occupancyParams = [formatDateOnly(historyStart), formatDateOnly(historyEnd)];
+      const occupancyFilters = buildForecastFilters(occupancyParams);
+      const occupancyResult = await query(
+        `WITH per_schedule AS (
+          SELECT
+            CAST(s.show_date AS DATE) AS metric_date,
+            EXTRACT(DOW FROM CAST(s.show_date AS DATE))::int AS weekday_number,
+            CASE
+              WHEN st.total_capacity > 0
+                THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
+              ELSE 0
+            END AS schedule_occupancy
+          FROM schedules s
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          LEFT JOIN tiket t ON t.schedule_id = s.schedule_id
+          WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)
+          ${occupancyFilters.length ? `AND ${occupancyFilters.join(" AND ")}` : ""}
+          GROUP BY CAST(s.show_date AS DATE), weekday_number, s.schedule_id, st.total_capacity
+        )
+        SELECT
+          metric_date,
+          weekday_number,
+          AVG(schedule_occupancy)::float8 AS avg_occupancy
+        FROM per_schedule
+        GROUP BY metric_date, weekday_number
+        ORDER BY metric_date`,
+        occupancyParams
+      );
+
+      const buildWeekdayMap = (rows, valueSelector) => {
+        const weekdayMap = new Map();
+
+        for (const row of rows) {
+          const weekday = Number(row.weekday_number || 0);
+          const bucket = weekdayMap.get(weekday) || [];
+          bucket.push(valueSelector(row));
+          weekdayMap.set(weekday, bucket);
+        }
+
+        return weekdayMap;
+      };
+
+      const average = (values) =>
+        values.length > 0
+          ? values.reduce((total, value) => total + Number(value || 0), 0) / values.length
+          : 0;
+
+      const salesTicketMap = buildWeekdayMap(salesResult.rows, (row) => Number(row.total_tickets || 0));
+      const salesRevenueMap = buildWeekdayMap(salesResult.rows, (row) => Number(row.revenue || 0));
+      const occupancyMap = buildWeekdayMap(occupancyResult.rows, (row) => Number(row.avg_occupancy || 0) * 100);
+
+      const fallbackTickets = average(salesResult.rows.map((row) => Number(row.total_tickets || 0)));
+      const fallbackRevenue = average(salesResult.rows.map((row) => Number(row.revenue || 0)));
+      const fallbackOccupancy = average(occupancyResult.rows.map((row) => Number(row.avg_occupancy || 0) * 100));
+
+      const breakdown = [];
+      const cursor = new Date(forecastWindow.startDate);
+      const forecastEndDate = new Date(forecastWindow.endDate);
+      forecastEndDate.setHours(0, 0, 0, 0);
+
+      while (cursor <= forecastEndDate) {
+        const weekday = cursor.getDay();
+        const ticketSamples = salesTicketMap.get(weekday) || [];
+        const revenueSamples = salesRevenueMap.get(weekday) || [];
+        const occupancySamples = occupancyMap.get(weekday) || [];
+
+        breakdown.push({
+          forecast_date: formatDateOnly(cursor),
+          weekday_number: weekday,
+          weekday_label: cursor.toLocaleDateString("en-US", { weekday: "long" }),
+          predicted_tickets: Number((average(ticketSamples.length ? ticketSamples : [fallbackTickets])).toFixed(2)),
+          predicted_revenue: Number((average(revenueSamples.length ? revenueSamples : [fallbackRevenue])).toFixed(2)),
+          predicted_occupancy: Number((average(occupancySamples.length ? occupancySamples : [fallbackOccupancy])).toFixed(2)),
+          sample_size: Math.max(ticketSamples.length, revenueSamples.length, occupancySamples.length)
+        });
+
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      const summary = breakdown.reduce(
+        (accumulator, item) => ({
+          predicted_tickets: accumulator.predicted_tickets + item.predicted_tickets,
+          predicted_revenue: accumulator.predicted_revenue + item.predicted_revenue,
+          predicted_occupancy: accumulator.predicted_occupancy + item.predicted_occupancy
+        }),
+        {
+          predicted_tickets: 0,
+          predicted_revenue: 0,
+          predicted_occupancy: 0
+        }
+      );
+
+      return {
+        summary: {
+          predicted_tickets: Number(summary.predicted_tickets.toFixed(2)),
+          predicted_revenue: Number(summary.predicted_revenue.toFixed(2)),
+          predicted_avg_occupancy:
+            breakdown.length > 0
+              ? Number((summary.predicted_occupancy / breakdown.length).toFixed(2))
+              : 0,
+          forecast_days: breakdown.length,
+          lookback_weeks: parsedLookbackWeeks
+        },
+        breakdown,
+        meta: {
+          history_window: {
+            start_date: formatDateOnly(historyStart),
+            end_date: formatDateOnly(historyEnd)
+          },
+          forecast_window: {
+            start_date: formatDateOnly(forecastWindow.startDate),
+            end_date: formatDateOnly(forecastWindow.endDate)
+          }
+        }
       };
     }
   );
