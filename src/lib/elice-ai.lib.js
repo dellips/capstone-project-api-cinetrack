@@ -132,6 +132,7 @@ Return valid JSON only with this exact shape:
 Rules:
 - Use English only.
 - Be concise and action-oriented.
+- Refer to films by title only, never by movie_id or internal code.
 - Do not use markdown.
 - Do not add any text outside the JSON object.
 `.trim();

@@ -66,7 +66,21 @@ function normalizeSummary(data, periodStart, periodEnd) {
 function normalizeAdScore(data) {
   return {
     summary: data.summary || {},
-    top_slots: Array.isArray(data.breakdown) ? data.breakdown.slice(0, 3) : []
+    top_slots: Array.isArray(data.breakdown)
+      ? data.breakdown.slice(0, 3).map((item) => ({
+          title: item.title,
+          genre: item.genre,
+          time_slot: item.time_slot,
+          total_shows: item.total_shows,
+          audience_size: item.audience_size,
+          total_revenue: item.total_revenue,
+          revenue_per_show: item.revenue_per_show,
+          occupancy: item.occupancy,
+          ad_score: item.ad_score,
+          is_rule_based: item.is_rule_based,
+          is_proxy_metric: item.is_proxy_metric
+        }))
+      : []
   };
 }
 
@@ -126,6 +140,54 @@ function getScopeRequest(input = {}) {
     },
     filters: {}
   };
+}
+
+async function enrichScope(scope) {
+  if (scope.scope_type === "global") {
+    return scope;
+  }
+
+  if (scope.scope_type === "city") {
+    return {
+      ...scope,
+      scope_meta: {
+        city: scope.scope_value,
+        label: scope.scope_value
+      }
+    };
+  }
+
+  if (scope.scope_type === "cinema") {
+    const cinemas = await listCinemaScopes();
+    const matched = cinemas.find((item) => item.scope_value === scope.scope_value);
+
+    if (!matched) {
+      return scope;
+    }
+
+    return {
+      ...scope,
+      scope_meta: matched.scope_meta,
+      filters: matched.filters
+    };
+  }
+
+  if (scope.scope_type === "studio") {
+    const studios = await listStudioScopes();
+    const matched = studios.find((item) => item.scope_value === scope.scope_value);
+
+    if (!matched) {
+      return scope;
+    }
+
+    return {
+      ...scope,
+      scope_meta: matched.scope_meta,
+      filters: matched.filters
+    };
+  }
+
+  return scope;
 }
 
 function buildDashboardCards(insight) {
@@ -229,7 +291,8 @@ async function buildAndSaveScopeInsight(scope) {
 
 export async function generateAiInsight(body = {}) {
   await ensureAiInsightsTable();
-  return buildAndSaveScopeInsight(getScopeRequest(body));
+  const scope = await enrichScope(getScopeRequest(body));
+  return buildAndSaveScopeInsight(scope);
 }
 
 export async function generateAiInsightCronBatch() {
@@ -298,10 +361,19 @@ export async function generateAiInsightCronBatch() {
 
 export async function getLatestAiInsight(query = {}) {
   await ensureAiInsightsTable();
-  const scope = getScopeRequest(query);
-  const record = await getLatestAiInsightRecord({
-    scope_type: scope.scope_type,
-    scope_value: scope.scope_value || ""
-  });
-  return mapRecordToResponse(record);
+  const scope = await enrichScope(getScopeRequest(query));
+
+  try {
+    const record = await getLatestAiInsightRecord({
+      scope_type: scope.scope_type,
+      scope_value: scope.scope_value || ""
+    });
+    return mapRecordToResponse(record);
+  } catch (error) {
+    if (error?.errorCode === "NOT_FOUND") {
+      return buildAndSaveScopeInsight(scope);
+    }
+
+    throw error;
+  }
 }
