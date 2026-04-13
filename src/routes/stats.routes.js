@@ -1,4 +1,5 @@
 import {
+  getForecast,
   getMovieStats,
   getOccupancy,
   getSummary,
@@ -51,6 +52,8 @@ export default async function statsRoutes(fastify) {
     const filters = {
       city: request.query.city ?? null,
       cinema_id: request.query.cinema_id ?? null,
+      studio_id: request.query.studio_id ?? null,
+      movie_id: request.query.movie_id ?? null,
       rating_usia: request.query.rating_usia ?? null,
       start_date: request.query.start_date ?? null,
       end_date: request.query.end_date ?? null
@@ -66,8 +69,25 @@ export default async function statsRoutes(fastify) {
       filters: {
         city: request.query.city ?? null,
         cinema_id: request.query.cinema_id ?? null,
+        studio_id: request.query.studio_id ?? null,
+        movie_id: request.query.movie_id ?? null,
         start_date: request.query.start_date ?? null,
         end_date: request.query.end_date ?? null
+      }
+    })
+  );
+
+  fastify.get("/stats/forecast", { schema: statsRouteSchemas.forecast }, async (request) =>
+    successResponse(await getForecast(request.query), {
+      filters: {
+        start_date: request.query.start_date ?? null,
+        end_date: request.query.end_date ?? null,
+        city: request.query.city ?? null,
+        cinema_id: request.query.cinema_id ?? null,
+        studio_id: request.query.studio_id ?? null,
+        movie_id: request.query.movie_id ?? null,
+        days_ahead: request.query.days_ahead ?? 7,
+        lookback_weeks: request.query.lookback_weeks ?? 4
       }
     })
   );

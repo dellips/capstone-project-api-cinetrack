@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import authRoutes from "./routes/auth.routes.js";
+import aiInsightRoutes from "./routes/ai-insights.routes.js";
 import baseRoutes from "./routes/base.routes.js";
 import cinemaRoutes from "./routes/cinemas.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
@@ -18,6 +19,7 @@ import { closeRedisClient } from "./redis.js";
 const routePlugins = [
   baseRoutes,
   authRoutes,
+  aiInsightRoutes,
   cinemaRoutes,
   dashboardRoutes,
   docsRoutes,
@@ -103,7 +105,7 @@ export function buildApp() {
       if (allowedOrigin) {
         reply.header("Access-Control-Allow-Origin", allowedOrigin);
         reply.header("Vary", "Origin");
-        reply.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+        reply.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
         reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
         reply.header("Access-Control-Allow-Credentials", "true");
       }

@@ -181,6 +181,12 @@ export const statsRouteSchemas = {
   },
   cinema: {
     querystring: buildStatsQuerySchema({})
+  },
+  forecast: {
+    querystring: buildStatsQuerySchema({
+      days_ahead: positiveInteger,
+      lookback_weeks: positiveInteger
+    })
   }
 };
 
@@ -273,6 +279,40 @@ export const dashboardRouteSchemas = {
   },
   paymentsConfig: {},
   cities: {}
+};
+
+export const aiInsightRouteSchemas = {
+  generate: {
+    body: {
+      anyOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            scope_type: { type: "string", enum: ["global", "city", "cinema", "studio"] },
+            city: nonEmptyString,
+            cinema_id: nonEmptyString,
+            studio_id: nonEmptyString
+          }
+        },
+        {
+          type: "null"
+        }
+      ]
+    }
+  },
+  cron: {},
+  latest: {
+    querystring: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        city: nonEmptyString,
+        cinema_id: nonEmptyString,
+        studio_id: nonEmptyString
+      }
+    }
+  }
 };
 
 export const notificationRouteSchemas = {
