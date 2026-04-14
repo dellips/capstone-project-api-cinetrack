@@ -320,9 +320,29 @@ export const aiInsightRouteSchemas = {
       type: "object",
       additionalProperties: false,
       properties: {
+        all: { type: "boolean" },
+        page: positiveInteger,
+        limit: positiveInteger,
+        scope_type: { type: "string", enum: ["global", "city", "cinema", "studio"] },
         city: nonEmptyString,
         cinema_id: nonEmptyString,
         studio_id: nonEmptyString
+      }
+    }
+  },
+  history: {
+    querystring: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        page: positiveInteger,
+        limit: positiveInteger,
+        scope_type: { type: "string", enum: ["global", "city", "cinema", "studio"] },
+        city: nonEmptyString,
+        cinema_id: nonEmptyString,
+        studio_id: nonEmptyString,
+        start_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+        end_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
       }
     }
   }

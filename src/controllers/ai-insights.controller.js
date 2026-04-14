@@ -1,4 +1,9 @@
-import { generateAiInsight, generateAiInsightCronBatch, getLatestAiInsight } from "../services/ai-insights.service.js";
+import {
+  generateAiInsight,
+  generateAiInsightCronBatch,
+  getAiInsightHistory,
+  getLatestAiInsight
+} from "../services/ai-insights.service.js";
 import { successResponse } from "../utils/response.js";
 
 export async function generateAiInsightController(request) {
@@ -13,5 +18,10 @@ export async function generateAiInsightCronController() {
 
 export async function getLatestAiInsightController(request) {
   const result = await getLatestAiInsight(request.query || {});
+  return successResponse(result);
+}
+
+export async function getAiInsightHistoryController(request) {
+  const result = await getAiInsightHistory(request.query || {});
   return successResponse(result);
 }

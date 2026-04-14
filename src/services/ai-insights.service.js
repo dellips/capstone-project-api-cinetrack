@@ -4,6 +4,8 @@ import { generateInsightFromAi } from "../lib/elice-ai.lib.js";
 import {
   ensureAiInsightsTable,
   getLatestAiInsightRecord,
+  listAiInsightHistoryRecords,
+  listLatestAiInsightRecords,
   listCinemaScopes,
   listCityScopes,
   listStudioScopes,
@@ -361,6 +363,33 @@ export async function generateAiInsightCronBatch() {
 
 export async function getLatestAiInsight(query = {}) {
   await ensureAiInsightsTable();
+
+  if (query.all) {
+    const result = await listLatestAiInsightRecords({
+      scope_type: query.scope_type || null,
+      page: query.page || 1,
+      limit: query.limit || 50
+    });
+    const items = result.rows.map(mapRecordToResponse);
+
+    return {
+      summary: {
+        total_items: result.total,
+        global_count: items.filter((item) => item.scope.type === "global").length,
+        city_count: items.filter((item) => item.scope.type === "city").length,
+        cinema_count: items.filter((item) => item.scope.type === "cinema").length,
+        studio_count: items.filter((item) => item.scope.type === "studio").length
+      },
+      pagination: {
+        page: result.page,
+        limit: result.limit,
+        total_items: result.total,
+        total_pages: result.total > 0 ? Math.ceil(result.total / result.limit) : 0
+      },
+      items
+    };
+  }
+
   const scope = await enrichScope(getScopeRequest(query));
 
   try {
@@ -376,4 +405,32 @@ export async function getLatestAiInsight(query = {}) {
 
     throw error;
   }
+}
+
+export async function getAiInsightHistory(query = {}) {
+  await ensureAiInsightsTable();
+  const scope = await enrichScope(getScopeRequest(query));
+  const useScopeValue = Boolean(query.city || query.cinema_id || query.studio_id);
+  const result = await listAiInsightHistoryRecords({
+    scope_type: query.scope_type || scope.scope_type || null,
+    scope_value: scope.scope_value || "",
+    useScopeValue,
+    start_date: query.start_date || null,
+    end_date: query.end_date || null,
+    page: query.page || 1,
+    limit: query.limit || 50
+  });
+
+  return {
+    summary: {
+      total_items: result.total
+    },
+    pagination: {
+      page: result.page,
+      limit: result.limit,
+      total_items: result.total,
+      total_pages: result.total > 0 ? Math.ceil(result.total / result.limit) : 0
+    },
+    items: result.rows.map(mapRecordToResponse)
+  };
 }

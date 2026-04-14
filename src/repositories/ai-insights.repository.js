@@ -164,6 +164,88 @@ export async function getLatestAiInsightRecord({ scope_type = "global", scope_va
   return result.rows[0];
 }
 
+export async function listLatestAiInsightRecords({ scope_type = null, page = 1, limit = 50 } = {}) {
+  const safePage = Math.max(1, Number(page || 1));
+  const safeLimit = Math.min(100, Math.max(1, Number(limit || 50)));
+  const offset = (safePage - 1) * safeLimit;
+
+  const rowsResult = await query(
+    `WITH latest_per_scope AS (
+      SELECT DISTINCT ON (scope_type, scope_value) *
+      FROM ai_insights
+      WHERE ($1::text IS NULL OR scope_type = $1)
+      ORDER BY scope_type, scope_value, period_end DESC, updated_at DESC, id DESC
+    )
+    SELECT *
+    FROM latest_per_scope
+    ORDER BY updated_at DESC, scope_type ASC, scope_value ASC
+    LIMIT $2 OFFSET $3`,
+    [scope_type, safeLimit, offset]
+  );
+
+  const countResult = await query(
+    `SELECT COUNT(*)::int AS total
+    FROM (
+      SELECT DISTINCT ON (scope_type, scope_value) id
+      FROM ai_insights
+      WHERE ($1::text IS NULL OR scope_type = $1)
+      ORDER BY scope_type, scope_value, period_end DESC, updated_at DESC, id DESC
+    ) latest_scopes`,
+    [scope_type]
+  );
+
+  return {
+    rows: rowsResult.rows,
+    total: Number(countResult.rows[0]?.total || 0),
+    page: safePage,
+    limit: safeLimit
+  };
+}
+
+export async function listAiInsightHistoryRecords({
+  scope_type = null,
+  scope_value = "",
+  useScopeValue = false,
+  start_date = null,
+  end_date = null,
+  page = 1,
+  limit = 50
+} = {}) {
+  const safePage = Math.max(1, Number(page || 1));
+  const safeLimit = Math.min(100, Math.max(1, Number(limit || 50)));
+  const offset = (safePage - 1) * safeLimit;
+  const params = [scope_type, useScopeValue ? scope_value : null, start_date, end_date, safeLimit, offset];
+
+  const rowsResult = await query(
+    `SELECT *
+    FROM ai_insights
+    WHERE ($1::text IS NULL OR scope_type = $1)
+      AND ($2::text IS NULL OR scope_value = $2)
+      AND ($3::date IS NULL OR period_start >= CAST($3 AS DATE))
+      AND ($4::date IS NULL OR period_end <= CAST($4 AS DATE))
+    ORDER BY period_end DESC, updated_at DESC, id DESC
+    LIMIT $5 OFFSET $6`,
+    params
+  );
+
+  const countResult = await query(
+    `SELECT COUNT(*)::int AS total
+    FROM ai_insights
+    WHERE ($1::text IS NULL OR scope_type = $1)
+      AND ($2::text IS NULL OR scope_value = $2)
+      AND ($3::date IS NULL OR period_start >= CAST($3 AS DATE))
+      AND ($4::date IS NULL OR period_end <= CAST($4 AS DATE))`,
+    params.slice(0, 4)
+  );
+
+  return {
+    rows: rowsResult.rows,
+    total: Number(countResult.rows[0]?.total || 0),
+    page: safePage,
+    limit: safeLimit
+  };
+}
+
 export async function listCityScopes() {
   const result = await query(
     `SELECT DISTINCT city
