@@ -18,12 +18,10 @@ const MOCK_PAYMENT_FEES = {
   unknown: 1000
 };
 
-// Membulatkan angka desimal agar payload analytics tetap rapi dan ringan.
 function roundNumber(value, digits = 2) {
   return Number(Number(value || 0).toFixed(digits));
 }
 
-// Menormalkan angka ke rentang 0..1 agar skor gabungan tetap seimbang.
 function normalizeValue(value, minValue, maxValue) {
   if (maxValue === minValue) {
     return value > 0 ? 1 : 0;
@@ -32,13 +30,11 @@ function normalizeValue(value, minValue, maxValue) {
   return (value - minValue) / (maxValue - minValue);
 }
 
-// Mengisi fallback admin fee bila payment config asli belum tersedia di database.
 function getMockAdminFee(paymentType) {
   const normalized = String(paymentType || "unknown").toLowerCase().replace(/\s+/g, "_");
   return MOCK_PAYMENT_FEES[normalized] ?? MOCK_PAYMENT_FEES.unknown;
 }
 
-// Menambahkan filter scope umum agar query dashboard tetap konsisten di semua endpoint.
 function buildScopeFilters(
   { city = null, cinema_id = null, studio_id = null, movie_id = null, payment_type = null } = {},
   aliases = { cinema: "c", studio: "st", schedule: "s", ticket: "t" },
@@ -79,7 +75,6 @@ function buildScopeFilters(
   };
 }
 
-// Menambahkan filter tanggal ke query berdasarkan kolom tanggal atau timestamp yang dipakai.
 function appendDateFilter(params, conditions, startDate, endDate, column, type = "timestamp") {
   if (!startDate || !endDate) {
     return;
@@ -95,13 +90,12 @@ function appendDateFilter(params, conditions, startDate, endDate, column, type =
   conditions.push(`CAST(${column} AS TIMESTAMP) BETWEEN $${params.length - 1} AND $${params.length}`);
 }
 
-// Mengubah notifikasi internal menjadi kontrak dashboard yang lebih kaya konteks.
 function mapDashboardNotification(item) {
   const where =
     item.context?.cinema_name
     || item.context?.cinema_id
     || item.context?.city
-    || "network";
+    || "Global";
 
   const impactSize =
     item.context?.growth
@@ -111,10 +105,10 @@ function mapDashboardNotification(item) {
     ?? 0;
 
   const recommendationById = {
-    "system-health": "Cek konektivitas backend, database, dan sinkronisasi data.",
-    "revenue-growth": "Review promo, lineup film, dan cabang dengan penurunan revenue.",
-    "occupancy-level": "Pertimbangkan relayout studio atau kurangi show yang sepi.",
-    "cinema-activity": "Validasi cabang tanpa aktivitas apakah offline, maintenance, atau idle."
+    "system-health": "Check backend connectivity, database health, and data synchronization.",
+    "revenue-growth": "Review promos, movie lineup, and branches with revenue declines.",
+    "occupancy-level": "Consider studio relayout or reduce low-demand showtimes.",
+    "cinema-activity": "Validate whether inactive branches are offline, under maintenance, or idle."
   };
 
   return {
@@ -124,14 +118,13 @@ function mapDashboardNotification(item) {
     what_happened: item.message,
     where,
     impact_size: impactSize,
-    recommended_action: recommendationById[item.notification_id] || "Tinjau metrik terkait dan lakukan evaluasi operasional.",
+    recommended_action: recommendationById[item.notification_id] || "Review related metrics and run an operational evaluation.",
     created_at: item.created_at,
     status: item.status,
     resolved: item.status === "read"
   };
 }
 
-// Menghitung moving average sederhana untuk membantu frontend menampilkan trend yang lebih halus.
 function buildMovingAverageSeries(breakdown, windowSize = 3) {
   return breakdown.map((item, index) => {
     const startIndex = Math.max(0, index - windowSize + 1);
@@ -146,7 +139,6 @@ function buildMovingAverageSeries(breakdown, windowSize = 3) {
   });
 }
 
-// Menghasilkan forecast sederhana sebagai fallback sebelum model prediksi khusus tersedia.
 function buildForecast(breakdown, group_by) {
   if (breakdown.length === 0) {
     return {
@@ -182,7 +174,6 @@ function buildForecast(breakdown, group_by) {
   };
 }
 
-// Menghasilkan ranking sales per film berdasarkan waktu transaksi agar selaras dengan KPI summary/trend.
 async function getMovieSalesByTransactionTime({
   start_date,
   end_date,
@@ -230,49 +221,55 @@ async function getMovieSalesByTransactionTime({
   }));
 }
 
-// Menghitung label rekomendasi sederhana berdasarkan gap demand dan monetisasi per slot.
 function buildTimeSlotRecommendation(item) {
   if (item.optimization_score >= 0.6 && item.occupancy >= 70) {
-    return "Pertimbangkan premium pricing atau tambah show pada slot ini.";
+    return "Consider premium pricing or add more shows in this slot.";
   }
 
   if (item.optimization_score >= 0.5) {
-    return "Demand bagus, evaluasi harga dan alokasi studio agar monetisasi naik.";
+    return "Demand is strong, evaluate pricing and studio allocation to improve monetization.";
   }
 
   if (item.occupancy < 40) {
-    return "Slot cenderung sepi, pertimbangkan promo atau kurangi frekuensi tayang.";
+    return "This slot is usually quiet; consider promotions or reducing show frequency.";
   }
 
-  return "Pertahankan slot ini sambil memantau perubahan demand.";
+  return "Keep this slot as-is while monitoring demand changes.";
 }
 
-// Mengambil ringkasan revenue per kota untuk executive dashboard dan heatmap wilayah.
 async function getCityRevenueRows(filters, dateRange) {
   const scope = buildScopeFilters(filters);
   appendDateFilter(scope.params, scope.conditions, dateRange.startDate, dateRange.endDate, "s.show_date", "date");
   const whereClause = scope.conditions.length ? `WHERE ${scope.conditions.join(" AND ")}` : "";
 
   const result = await query(
-    `WITH per_schedule AS (
+    `WITH filtered_schedules AS (
       SELECT
-        c.city,
-        c.cinema_id,
         s.schedule_id,
         st.total_capacity,
-        COUNT(t.tiket_id)::int AS total_tickets,
-        COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
-        CASE
-          WHEN st.total_capacity > 0
-            THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
-          ELSE 0
-        END AS schedule_occupancy
+        c.city,
+        c.cinema_id
       FROM schedules s
       JOIN studio st ON s.studio_id = st.studio_id
       JOIN cinema c ON st.cinema_id = c.cinema_id
-      LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
       ${whereClause}
-      GROUP BY c.city, c.cinema_id, s.schedule_id, st.total_capacity
+    ),
+    per_schedule AS (
+      SELECT
+        fs.city,
+        fs.cinema_id,
+        fs.schedule_id,
+        fs.total_capacity,
+        COUNT(t.tiket_id)::int AS total_tickets,
+        COALESCE(SUM(t.final_price), 0)::float8 AS total_revenue,
+        CASE
+          WHEN fs.total_capacity > 0
+            THEN COUNT(t.tiket_id)::float8 / fs.total_capacity::float8
+          ELSE 0
+        END AS schedule_occupancy
+      FROM filtered_schedules fs
+      LEFT JOIN tiket t ON fs.schedule_id = t.schedule_id
+      GROUP BY fs.city, fs.cinema_id, fs.schedule_id, fs.total_capacity
     )
     SELECT
       city,
@@ -302,7 +299,6 @@ async function getCityRevenueRows(filters, dateRange) {
   }));
 }
 
-// Merangkum node status per cinema dengan inferensi dari aktivitas tiket dan health backend.
 export async function getSystemStatus() {
   return withCache("system-status", {}, config.cacheTtlSeconds, async () => {
     const [health, cinemaStats] = await Promise.all([
@@ -341,7 +337,6 @@ export async function getSystemStatus() {
   });
 }
 
-// Mengembalikan daftar kota unik sebagai sumber map dan filter lokasi frontend.
 export async function getCities() {
   return withCache("cities-list", {}, config.cacheTtlSeconds, async () => {
     const result = await query(
@@ -363,7 +358,6 @@ export async function getCities() {
   });
 }
 
-// Menyediakan konfigurasi payment mock agar analitik profitability bisa tetap hidup.
 export async function getPaymentConfigs() {
   return withCache("payments-config", {}, config.cacheTtlSeconds, async () => {
     const result = await query(
@@ -382,7 +376,6 @@ export async function getPaymentConfigs() {
   });
 }
 
-// Menggabungkan KPI utama executive dashboard agar frontend cukup memanggil satu endpoint.
 export async function getExecutiveDashboard({
   start_date,
   end_date,
@@ -446,7 +439,6 @@ export async function getExecutiveDashboard({
   );
 }
 
-// Menghasilkan overview sales supaya kartu KPI frontend tidak menghitung ulang dari raw data.
 export async function getSalesOverview({
   start_date,
   end_date,
@@ -488,7 +480,6 @@ export async function getSalesOverview({
   );
 }
 
-// Menyediakan ranking dan kontribusi revenue per cinema untuk halaman sales.
 export async function getSalesRevenueByCinema({
   start_date,
   end_date,
@@ -546,7 +537,6 @@ export async function getSalesRevenueByCinema({
   );
 }
 
-// Menyediakan ranking revenue per studio agar efisiensi layar bisa dibandingkan langsung.
 export async function getSalesRevenueByStudio({
   start_date,
   end_date,
@@ -657,7 +647,6 @@ export async function getSalesRevenueByStudio({
   );
 }
 
-// Menyediakan ranking revenue per film berikut kontribusinya ke total penjualan.
 export async function getSalesRevenueByMovie({
   start_date,
   end_date,
@@ -699,7 +688,6 @@ export async function getSalesRevenueByMovie({
   );
 }
 
-// Mengelompokkan demand, revenue, dan okupansi per slot jam untuk optimasi sales.
 export async function getSalesTimeSlots({
   start_date,
   end_date,
@@ -819,7 +807,6 @@ export async function getSalesTimeSlots({
   );
 }
 
-// Menyediakan trend revenue/tiket dengan moving average dan forecast sederhana.
 export async function getSalesTrend({
   start_date,
   end_date,
@@ -920,7 +907,6 @@ export async function getSalesTrend({
   );
 }
 
-// Membandingkan pola weekday dan weekend agar strategi promo dan pricing lebih tepat.
 export async function getSalesWeekendVsWeekday({
   start_date,
   end_date,
@@ -1015,7 +1001,6 @@ export async function getSalesWeekendVsWeekday({
   );
 }
 
-// Menghitung preferensi metode bayar dan profitabilitas bersih dengan config mock.
 export async function getSalesPayment({
   start_date,
   end_date,
@@ -1090,7 +1075,6 @@ export async function getSalesPayment({
   );
 }
 
-// Merangkum cancelled dan delayed show agar risiko operasional mudah dipantau.
 export async function getSalesOperationalRisk({
   start_date,
   end_date,
@@ -1207,7 +1191,6 @@ export async function getSalesOperationalRisk({
   );
 }
 
-// Menghasilkan ringkasan utama halaman films dari sisi inventory dan penjualan.
 export async function getFilmsOverview({
   start_date,
   end_date,
@@ -1253,7 +1236,6 @@ export async function getFilmsOverview({
   );
 }
 
-// Menyajikan performa film beserta ranking blockbuster berbasis tiket dan revenue.
 export async function getFilmsPerformance({
   start_date,
   end_date,
@@ -1319,7 +1301,6 @@ export async function getFilmsPerformance({
   );
 }
 
-// Menggabungkan performa tiap schedule dengan ringkasan repeat show dan audience density.
 export async function getFilmsSchedules({
   start_date,
   end_date,
@@ -1347,68 +1328,93 @@ export async function getFilmsSchedules({
 
       const [scheduleResult, repeatResult, densityResult] = await Promise.all([
         query(
-          `SELECT
-            s.schedule_id,
-            s.movie_id,
-            m.title,
-            s.show_date,
-            s.start_time,
-            st.studio_id,
-            st.cinema_id,
-            st.total_capacity,
-            COUNT(t.tiket_id)::int AS total_tickets,
-            COALESCE(SUM(t.final_price), 0)::float8 AS revenue
-          FROM schedules s
-          JOIN movies m ON s.movie_id = m.movie_id
-          JOIN studio st ON s.studio_id = st.studio_id
-          JOIN cinema c ON st.cinema_id = c.cinema_id
-          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-          ${whereClause}
-          GROUP BY
-            s.schedule_id,
-            s.movie_id,
-            m.title,
-            s.show_date,
-            s.start_time,
-            st.studio_id,
-            st.cinema_id,
-            st.total_capacity
-          ORDER BY CAST(s.show_date AS DATE) DESC, CAST(s.start_time AS TIME) DESC`,
-          scope.params
-        ),
-        query(
-          `SELECT
-            s.movie_id,
-            m.title,
-            s.show_date,
-            COUNT(DISTINCT s.schedule_id)::int AS total_schedules,
-            COUNT(t.tiket_id)::int AS total_tickets,
-            COALESCE(SUM(t.final_price), 0)::float8 AS revenue
-          FROM schedules s
-          JOIN movies m ON s.movie_id = m.movie_id
-          JOIN studio st ON s.studio_id = st.studio_id
-          JOIN cinema c ON st.cinema_id = c.cinema_id
-          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-          ${whereClause}
-          GROUP BY s.movie_id, m.title, s.show_date
-          ORDER BY CAST(s.show_date AS DATE) DESC, m.title ASC`,
-          scope.params
-        ),
-        query(
-          `WITH per_schedule AS (
+          `WITH filtered_schedules AS (
             SELECT
               s.schedule_id,
               s.movie_id,
-              m.title,
-              st.total_capacity,
-              COUNT(t.tiket_id)::int AS total_tickets
+              s.show_date,
+              s.start_time,
+              st.studio_id,
+              st.cinema_id,
+              st.total_capacity
             FROM schedules s
-            JOIN movies m ON s.movie_id = m.movie_id
             JOIN studio st ON s.studio_id = st.studio_id
             JOIN cinema c ON st.cinema_id = c.cinema_id
-            LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
             ${whereClause}
-            GROUP BY s.schedule_id, s.movie_id, m.title, st.total_capacity
+          )
+          SELECT
+            fs.schedule_id,
+            fs.movie_id,
+            m.title,
+            fs.show_date,
+            fs.start_time,
+            fs.studio_id,
+            fs.cinema_id,
+            fs.total_capacity,
+            COUNT(t.tiket_id)::int AS total_tickets,
+            COALESCE(SUM(t.final_price), 0)::float8 AS revenue
+          FROM filtered_schedules fs
+          JOIN movies m ON fs.movie_id = m.movie_id
+          LEFT JOIN tiket t ON fs.schedule_id = t.schedule_id
+          GROUP BY
+            fs.schedule_id,
+            fs.movie_id,
+            m.title,
+            fs.show_date,
+            fs.start_time,
+            fs.studio_id,
+            fs.cinema_id,
+            fs.total_capacity
+          ORDER BY CAST(fs.show_date AS DATE) DESC, CAST(fs.start_time AS TIME) DESC`,
+          scope.params
+        ),
+        query(
+          `WITH filtered_schedules AS (
+            SELECT
+              s.schedule_id,
+              s.movie_id,
+              s.show_date
+            FROM schedules s
+            JOIN studio st ON s.studio_id = st.studio_id
+            JOIN cinema c ON st.cinema_id = c.cinema_id
+            ${whereClause}
+          )
+          SELECT
+            fs.movie_id,
+            m.title,
+            fs.show_date,
+            COUNT(DISTINCT fs.schedule_id)::int AS total_schedules,
+            COUNT(t.tiket_id)::int AS total_tickets,
+            COALESCE(SUM(t.final_price), 0)::float8 AS revenue
+          FROM filtered_schedules fs
+          JOIN movies m ON fs.movie_id = m.movie_id
+          LEFT JOIN tiket t ON fs.schedule_id = t.schedule_id
+          GROUP BY fs.movie_id, m.title, fs.show_date
+          ORDER BY CAST(fs.show_date AS DATE) DESC, m.title ASC`,
+          scope.params
+        ),
+        query(
+          `WITH filtered_schedules AS (
+            SELECT
+              s.schedule_id,
+              s.movie_id,
+              st.total_capacity
+            FROM schedules s
+            JOIN studio st ON s.studio_id = st.studio_id
+            JOIN cinema c ON st.cinema_id = c.cinema_id
+            ${whereClause}
+          ),
+          per_schedule AS (
+            SELECT
+              fs.schedule_id,
+              fs.movie_id,
+              m.title,
+              fs.total_capacity,
+              COUNT(t.tiket_id)::int AS total_tickets
+            FROM filtered_schedules fs
+            JOIN movies m ON fs.movie_id = m.movie_id
+            LEFT JOIN tiket t ON fs.schedule_id = t.schedule_id
+            GROUP BY fs.schedule_id, fs.movie_id, m.title, fs.total_capacity
           )
           SELECT
             movie_id,
@@ -1466,7 +1472,6 @@ export async function getFilmsSchedules({
   );
 }
 
-// Mengembalikan okupansi film secara global dan dalam beberapa breakdown penting.
 export async function getFilmsOccupancy({
   start_date,
   end_date,
@@ -1644,7 +1649,6 @@ export async function getFilmsOccupancy({
   );
 }
 
-// Menggabungkan distribusi genre dan format studio agar evaluasi lineup lebih mudah.
 export async function getFilmsDistribution({
   start_date,
   end_date,
@@ -1729,7 +1733,6 @@ export async function getFilmsDistribution({
   );
 }
 
-// Menggabungkan seluruh panel analitik film dalam satu respons untuk mengurangi round-trip HTTP.
 export async function getFilmsAnalyticsBundle(query = {}) {
   const topN = query.top_n != null && query.top_n !== "" ? Number(query.top_n) : 20;
   const perfQuery = { ...query, top_n: topN };
@@ -1753,7 +1756,6 @@ export async function getFilmsAnalyticsBundle(query = {}) {
   };
 }
 
-// Menggabungkan seluruh panel analitik penjualan agar halaman sales bisa dimuat sekali panggil.
 export async function getSalesAnalyticsBundle(query = {}) {
   const cinemaTop =
     query.cinema_top_n != null && query.cinema_top_n !== "" ? Number(query.cinema_top_n) : 10;
@@ -1792,7 +1794,6 @@ export async function getSalesAnalyticsBundle(query = {}) {
   };
 }
 
-// Menyajikan risiko operasional film agar issue show bisa ditindak dari halaman films.
 export async function getFilmsOperationalRisk(filters = {}) {
   const risk = await getSalesOperationalRisk(filters);
 
@@ -1829,7 +1830,6 @@ export async function getFilmsOperationalRisk(filters = {}) {
   };
 }
 
-// Mengemas notifikasi dashboard dalam kontrak yang lebih mudah dipakai halaman alert center.
 export async function getDashboardNotifications({ status = "all", severity = null, page = 1, limit = 20 } = {}) {
   return withCache(
     "dashboard-notifications",
@@ -1846,7 +1846,6 @@ export async function getDashboardNotifications({ status = "all", severity = nul
   );
 }
 
-// Mengubah hasil slot menjadi rekomendasi pricing yang siap dipakai dashboard atau tim bisnis.
 export async function getPricingRecommendations(filters = {}) {
   return withCache(
     "analytics-pricing-recommendation",
@@ -1866,7 +1865,7 @@ export async function getPricingRecommendations(filters = {}) {
 
           if (item.normalized_demand >= 0.7 && item.normalized_revenue <= 0.45 && item.occupancy >= 70) {
             action = "increase_price";
-            reason = "Demand dan okupansi tinggi, tetapi monetisasi slot masih tertinggal.";
+            reason = "Demand and occupancy are high, but slot monetization is still lagging.";
             price_change_pct = 8;
           } else if (item.normalized_demand >= 0.6 && item.occupancy >= 80) {
             action = "increase_price";
@@ -1874,7 +1873,7 @@ export async function getPricingRecommendations(filters = {}) {
             price_change_pct = 5;
           } else if (item.occupancy <= 35) {
             action = "discount_or_reduce_slot";
-            reason = "Okupansi rendah, lebih cocok didorong promo atau dikurangi frekuensinya.";
+            reason = "Occupancy is low, so promotions or reduced frequency may be more effective.";
             price_change_pct = -10;
           }
 
@@ -1912,7 +1911,6 @@ export async function getPricingRecommendations(filters = {}) {
   );
 }
 
-// Menyusun slot iklan terbaik berbasis reach, revenue, dan occupancy sebagai proxy.
 export async function getBestAdSlots({
   start_date,
   end_date,
@@ -2033,7 +2031,6 @@ export async function getBestAdSlots({
   );
 }
 
-// Mendeteksi film yang mulai melonjak lebih cepat dari periode sebelumnya.
 export async function getEarlyBlockbuster({
   start_date,
   end_date,
@@ -2129,8 +2126,8 @@ export async function getEarlyBlockbuster({
               currentTickets >= Number(min_tickets) && growthRate >= Number(min_growth),
             suggested_action:
               currentTickets >= Number(min_tickets) && growthRate >= Number(min_growth)
-                ? "Tambah show dan dorong marketing lebih cepat."
-                : "Pantau lebih lanjut sebelum ekspansi slot.",
+                ? "Add more shows and accelerate marketing support."
+                : "Monitor further before expanding slot allocation.",
             is_rule_based: true
           };
         })
@@ -2156,7 +2153,6 @@ export async function getEarlyBlockbuster({
   );
 }
 
-// Mendeteksi film yang melemah pada slot yang sama ketika film lain jauh lebih kuat.
 export async function getCannibalization({
   start_date,
   end_date,
@@ -2298,7 +2294,7 @@ export async function getCannibalization({
             impacted_occupancy: item.occupancy,
             competitor_occupancy: strongest.occupancy,
             occupancy_gap: roundNumber(strongest.occupancy - item.occupancy),
-            suggested_action: "Pertimbangkan pindah jam tayang, kurangi overlap, atau ganti studio.",
+            suggested_action: "Consider moving showtime, reducing overlap, or changing studio.",
             is_rule_based: true
           });
         }

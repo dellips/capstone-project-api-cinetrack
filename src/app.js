@@ -13,6 +13,7 @@ import systemRoutes from "./routes/system.routes.js";
 import { pool } from "./db.js";
 import { config } from "./config.js";
 import { getCacheContext, runWithCacheContext } from "./utils/cache.js";
+import { getTelemetryContext, runWithTelemetryContext } from "./utils/telemetry.js";
 import { errorResponse } from "./utils/response.js";
 import { closeRedisClient } from "./redis.js";
 
@@ -30,7 +31,6 @@ const routePlugins = [
   systemRoutes
 ];
 
-// Memilih origin CORS yang valid dan mengembalikan null bila origin tidak diizinkan.
 function getCorsOrigin(origin) {
   if (config.corsOrigins.includes("*")) {
     return "*";
@@ -43,7 +43,6 @@ function getCorsOrigin(origin) {
   return config.corsOrigins.includes(origin) ? origin : null;
 }
 
-// Menentukan status error yang dipakai response global, termasuk validasi schema Fastify.
 function getStatusCode(error) {
   if (error.validation) {
     return 422;
@@ -52,7 +51,6 @@ function getStatusCode(error) {
   return error.statusCode || 500;
 }
 
-// Mengubah status error menjadi kode yang stabil untuk dipakai frontend.
 function getErrorCode(error, statusCode) {
   if (error.errorCode) {
     return error.errorCode;
@@ -72,7 +70,6 @@ function getErrorCode(error, statusCode) {
   return codes[statusCode] || "INTERNAL_ERROR";
 }
 
-// Merapikan detail validasi schema agar frontend mudah menandai field yang bermasalah.
 function getErrorDetails(error, statusCode) {
   if (statusCode !== 422 || !error.validation) {
     return error.details ?? null;
@@ -84,14 +81,12 @@ function getErrorDetails(error, statusCode) {
   }));
 }
 
-// Mendaftarkan route yang sama ke prefix tertentu agar kontrak lama dan baru tetap hidup.
 function registerRoutes(app, prefix = "") {
   for (const plugin of routePlugins) {
     app.register(plugin, { prefix });
   }
 }
 
-// Membuat instance Fastify, hook CORS, error handler, dan seluruh route aplikasi.
 export function buildApp() {
   const app = Fastify({
     logger: true
@@ -102,22 +97,31 @@ export function buildApp() {
   }
 
   app.addHook("onRequest", async (request, reply) => {
-    return runWithCacheContext(async () => {
-      const origin = request.headers.origin;
-      const allowedOrigin = getCorsOrigin(origin);
+    request.requestStartedAt = process.hrtime.bigint();
+    return runWithTelemetryContext(
+      {
+        requestId: request.id,
+        method: request.method,
+        url: request.url
+      },
+      () =>
+        runWithCacheContext(async () => {
+          const origin = request.headers.origin;
+          const allowedOrigin = getCorsOrigin(origin);
 
-      if (allowedOrigin) {
-        reply.header("Access-Control-Allow-Origin", allowedOrigin);
-        reply.header("Vary", "Origin");
-        reply.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-        reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        reply.header("Access-Control-Allow-Credentials", "true");
-      }
+          if (allowedOrigin) {
+            reply.header("Access-Control-Allow-Origin", allowedOrigin);
+            reply.header("Vary", "Origin");
+            reply.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+            reply.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            reply.header("Access-Control-Allow-Credentials", "true");
+          }
 
-      if (request.method === "OPTIONS") {
-        return reply.status(204).send();
-      }
-    });
+          if (request.method === "OPTIONS") {
+            return reply.status(204).send();
+          }
+        })
+    );
   });
 
   app.addHook("onSend", async (request, reply, payload) => {
@@ -126,6 +130,37 @@ export function buildApp() {
     reply.header("X-Cache", cacheContext?.status || "BYPASS");
 
     return payload;
+  });
+
+  app.addHook("onResponse", async (request, reply) => {
+    const telemetry = getTelemetryContext();
+    if (!telemetry) return;
+
+    const slowRequestMs = Number(process.env.TELEMETRY_SLOW_REQUEST_MS || 600);
+    const elapsedMs =
+      request.requestStartedAt != null
+        ? Number(process.hrtime.bigint() - request.requestStartedAt) / 1_000_000
+        : 0;
+
+    const payload = {
+      request_id: telemetry.requestId || request.id,
+      method: telemetry.method || request.method,
+      route: telemetry.url || request.url,
+      status_code: reply.statusCode,
+      duration_ms: Number(elapsedMs.toFixed(2)),
+      db_query_count: telemetry.queryCount || 0,
+      db_total_ms: Number((telemetry.totalQueryMs || 0).toFixed(2))
+    };
+
+    if (elapsedMs >= slowRequestMs) {
+      request.log.warn({
+        ...payload,
+        slow_queries: telemetry.slowQueries || []
+      }, "slow_request");
+      return;
+    }
+
+    request.log.info(payload, "request_timing");
   });
 
   app.setErrorHandler((error, request, reply) => {

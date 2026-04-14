@@ -59,6 +59,7 @@ async function runCase(app, recorder, {
   acceptedStatuses = [200]
 }) {
   try {
+    const startedAt = Date.now();
     const response = await app.inject({
       method,
       url,
@@ -76,6 +77,7 @@ async function runCase(app, recorder, {
       method,
       url,
       statusCode: response.statusCode,
+      duration_ms: Date.now() - startedAt,
       ok: isAcceptedStatus(response.statusCode, acceptedStatuses),
       acceptedStatuses,
       body: buildBodyPreview(parsedBody)
@@ -88,6 +90,7 @@ async function runCase(app, recorder, {
       method,
       url,
       statusCode: 0,
+      duration_ms: 0,
       ok: false,
       acceptedStatuses,
       body: {
@@ -105,10 +108,22 @@ function buildSummary(results) {
   const passed = results.filter((item) => item.ok).length;
   const failed = results.filter((item) => !item.ok).length;
 
+  const slowest = [...results]
+    .sort((left, right) => (right.duration_ms || 0) - (left.duration_ms || 0))
+    .slice(0, 10)
+    .map((item) => ({
+      name: item.name,
+      method: item.method,
+      url: item.url,
+      statusCode: item.statusCode,
+      duration_ms: item.duration_ms || 0
+    }));
+
   return {
     total,
     passed,
-    failed
+    failed,
+    slowest
   };
 }
 
@@ -151,6 +166,17 @@ function buildMarkdownReport({ summary, sample_ids, results }) {
 
   for (const item of results) {
     lines.push(`- [${item.ok ? "PASS" : "FAIL"}] ${item.method} ${item.url} -> ${item.statusCode}`);
+  }
+
+  lines.push("");
+  lines.push("## Slowest Endpoints");
+  lines.push("");
+  if ((summary.slowest || []).length === 0) {
+    lines.push("No timing data.");
+  } else {
+    for (const item of summary.slowest) {
+      lines.push(`- ${item.duration_ms}ms — ${item.method} ${item.url} (${item.statusCode})`);
+    }
   }
 
   lines.push("");
