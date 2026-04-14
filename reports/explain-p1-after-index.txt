@@ -1,0 +1,290 @@
+SET
+SET
+SET
+                                                                                                                                  QUERY PLAN                                                                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=833.96..836.93 rows=108 width=48) (actual time=33.657..33.800 rows=4.00 loops=1)
+   Output: slot_stats.time_slot, (sum(slot_stats.demand))::integer, sum(slot_stats.revenue), (sum(slot_stats.total_capacity))::integer
+   Group Key: slot_stats.time_slot
+   Buffers: shared hit=3886 read=90
+   ->  Sort  (cost=833.96..834.23 rows=108 width=48) (actual time=33.617..33.685 rows=840.00 loops=1)
+         Output: slot_stats.time_slot, slot_stats.demand, slot_stats.revenue, slot_stats.total_capacity
+         Sort Key: slot_stats.time_slot
+         Sort Method: quicksort  Memory: 64kB
+         Buffers: shared hit=3886 read=90
+         ->  Subquery Scan on slot_stats  (cost=825.46..830.32 rows=108 width=48) (actual time=33.323..33.476 rows=840.00 loops=1)
+               Output: slot_stats.time_slot, slot_stats.demand, slot_stats.revenue, slot_stats.total_capacity
+               Buffers: shared hit=3883 read=90
+               ->  HashAggregate  (cost=825.46..829.24 rows=108 width=56) (actual time=33.322..33.415 rows=840.00 loops=1)
+                     Output: ((lpad(((EXTRACT(hour FROM (s.start_time)::time without time zone))::integer)::text, 2, '0'::text) || ':00'::text)), s.schedule_id, st.total_capacity, (count(t.tiket_id))::integer, (COALESCE(sum(t.final_price), '0'::real))::double precision
+                     Group Key: (lpad(((EXTRACT(hour FROM (s.start_time)::time without time zone))::integer)::text, 2, '0'::text) || ':00'::text), s.schedule_id, st.total_capacity
+                     Batches: 1  Memory Usage: 129kB
+                     Buffers: shared hit=3883 read=90
+                     ->  Nested Loop Left Join  (cost=1.69..822.82 rows=211 width=58) (actual time=2.199..27.743 rows=34863.00 loops=1)
+                           Output: (lpad(((EXTRACT(hour FROM (s.start_time)::time without time zone))::integer)::text, 2, '0'::text) || ':00'::text), s.schedule_id, st.total_capacity, t.tiket_id, t.final_price
+                           Buffers: shared hit=3883 read=90
+                           ->  Nested Loop  (cost=1.26..770.99 rows=5 width=18) (actual time=2.142..10.385 rows=840.00 loops=1)
+                                 Output: s.start_time, s.schedule_id, st.total_capacity
+                                 Join Filter: ((s.studio_id)::text = (st.studio_id)::text)
+                                 Rows Removed by Join Filter: 49560
+                                 Buffers: shared hit=225
+                                 ->  Seq Scan on public.schedules s  (cost=0.00..763.00 rows=108 width=24) (actual time=2.011..5.155 rows=3360.00 loops=1)
+                                       Output: s.schedule_id, s.movie_id, s.studio_id, s.show_date, s.start_time, s.price, s.status
+                                       Filter: (((s.show_date)::date >= '2026-04-01'::date) AND ((s.show_date)::date <= '2026-04-14'::date))
+                                       Rows Removed by Filter: 18240
+                                       Buffers: shared hit=223
+                                 ->  Materialize  (cost=1.26..3.13 rows=3 width=14) (actual time=0.000..0.001 rows=15.00 loops=3360)
+                                       Output: st.total_capacity, st.studio_id
+                                       Storage: Memory  Maximum Storage: 17kB
+                                       Buffers: shared hit=2
+                                       ->  Hash Join  (cost=1.26..3.12 rows=3 width=14) (actual time=0.064..0.075 rows=15.00 loops=1)
+                                             Output: st.total_capacity, st.studio_id
+                                             Hash Cond: ((st.cinema_id)::text = (c.cinema_id)::text)
+                                             Buffers: shared hit=2
+                                             ->  Seq Scan on public.studio st  (cost=0.00..1.60 rows=60 width=19) (actual time=0.023..0.026 rows=60.00 loops=1)
+                                                   Output: st.studio_id, st.cinema_id, st.studio_name, st.total_capacity, st.screen_type
+                                                   Buffers: shared hit=1
+                                             ->  Hash  (cost=1.25..1.25 rows=1 width=118) (actual time=0.017..0.018 rows=5.00 loops=1)
+                                                   Output: c.cinema_id
+                                                   Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                   Buffers: shared hit=1
+                                                   ->  Seq Scan on public.cinema c  (cost=0.00..1.25 rows=1 width=118) (actual time=0.008..0.009 rows=5.00 loops=1)
+                                                         Output: c.cinema_id
+                                                         Filter: ((c.city)::text = 'Jakarta'::text)
+                                                         Rows Removed by Filter: 15
+                                                         Buffers: shared hit=1
+                           ->  Index Scan using idx_tiket_schedule_id on public.tiket t  (cost=0.42..9.04 rows=48 width=22) (actual time=0.003..0.008 rows=41.50 loops=840)
+                                 Output: t.tiket_id, t.schedule_id, t.seat_category, t.final_price, t.trans_time, t.payment_type
+                                 Index Cond: ((t.schedule_id)::text = (s.schedule_id)::text)
+                                 Index Searches: 840
+                                 Buffers: shared hit=3658 read=90
+ Query Identifier: 648643407218849657
+ Planning:
+   Buffers: shared hit=215 read=8
+ Planning Time: 0.946 ms
+ Execution Time: 33.923 ms
+(60 rows)
+
+                                                                                                                                       QUERY PLAN                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=857.62..858.15 rows=211 width=191) (actual time=51.187..51.223 rows=840.00 loops=1)
+   Output: s.schedule_id, s.movie_id, m.title, s.show_date, s.start_time, st.studio_id, st.cinema_id, st.total_capacity, ((count(t.tiket_id))::integer), ((COALESCE(sum(t.final_price), '0'::real))::double precision), ((s.show_date)::date), ((s.start_time)::time without time zone)
+   Sort Key: ((s.show_date)::date) DESC, ((s.start_time)::time without time zone) DESC
+   Sort Method: quicksort  Memory: 117kB
+   Buffers: shared hit=3985
+   ->  GroupAggregate  (cost=786.30..849.47 rows=211 width=191) (actual time=10.089..50.737 rows=840.00 loops=1)
+         Output: s.schedule_id, s.movie_id, m.title, s.show_date, s.start_time, st.studio_id, st.cinema_id, st.total_capacity, (count(t.tiket_id))::integer, (COALESCE(sum(t.final_price), '0'::real))::double precision, (s.show_date)::date, (s.start_time)::time without time zone
+         Group Key: st.studio_id, s.schedule_id, s.movie_id, m.title, s.show_date, s.start_time, st.cinema_id, st.total_capacity
+         Buffers: shared hit=3977
+         ->  Incremental Sort  (cost=786.30..838.92 rows=211 width=181) (actual time=10.065..44.319 rows=34863.00 loops=1)
+               Output: s.schedule_id, s.movie_id, m.title, s.show_date, s.start_time, st.studio_id, st.cinema_id, st.total_capacity, t.tiket_id, t.final_price
+               Sort Key: st.studio_id, s.schedule_id, s.movie_id, m.title, s.show_date, s.start_time, st.cinema_id, st.total_capacity
+               Presorted Key: st.studio_id
+               Full-sort Groups: 15  Sort Method: quicksort  Average Memory: 31kB  Peak Memory: 31kB
+               Pre-sorted Groups: 15  Sort Method: quicksort  Average Memory: 347kB  Peak Memory: 354kB
+               Buffers: shared hit=3977
+               ->  Nested Loop Left Join  (cost=785.30..833.09 rows=211 width=181) (actual time=7.436..16.406 rows=34863.00 loops=1)
+                     Output: s.schedule_id, s.movie_id, m.title, s.show_date, s.start_time, st.studio_id, st.cinema_id, st.total_capacity, t.tiket_id, t.final_price
+                     Buffers: shared hit=3974
+                     ->  Merge Join  (cost=784.87..785.48 rows=5 width=167) (actual time=7.410..7.871 rows=840.00 loops=1)
+                           Output: s.schedule_id, s.movie_id, s.show_date, s.start_time, m.title, st.studio_id, st.cinema_id, st.total_capacity
+                           Merge Cond: ((st.studio_id)::text = (s.studio_id)::text)
+                           Buffers: shared hit=226
+                           ->  Sort  (cost=3.14..3.15 rows=3 width=19) (actual time=0.033..0.040 rows=15.00 loops=1)
+                                 Output: st.studio_id, st.cinema_id, st.total_capacity
+                                 Sort Key: st.studio_id
+                                 Sort Method: quicksort  Memory: 25kB
+                                 Buffers: shared hit=2
+                                 ->  Hash Join  (cost=1.26..3.12 rows=3 width=19) (actual time=0.018..0.028 rows=15.00 loops=1)
+                                       Output: st.studio_id, st.cinema_id, st.total_capacity
+                                       Hash Cond: ((st.cinema_id)::text = (c.cinema_id)::text)
+                                       Buffers: shared hit=2
+                                       ->  Seq Scan on public.studio st  (cost=0.00..1.60 rows=60 width=19) (actual time=0.005..0.008 rows=60.00 loops=1)
+                                             Output: st.studio_id, st.cinema_id, st.studio_name, st.total_capacity, st.screen_type
+                                             Buffers: shared hit=1
+                                       ->  Hash  (cost=1.25..1.25 rows=1 width=118) (actual time=0.008..0.009 rows=5.00 loops=1)
+                                             Output: c.cinema_id
+                                             Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                             Buffers: shared hit=1
+                                             ->  Seq Scan on public.cinema c  (cost=0.00..1.25 rows=1 width=118) (actual time=0.004..0.006 rows=5.00 loops=1)
+                                                   Output: c.cinema_id
+                                                   Filter: ((c.city)::text = 'Jakarta'::text)
+                                                   Rows Removed by Filter: 15
+                                                   Buffers: shared hit=1
+                           ->  Sort  (cost=781.73..782.00 rows=108 width=158) (actual time=7.334..7.483 rows=2689.00 loops=1)
+                                 Output: s.schedule_id, s.movie_id, s.show_date, s.start_time, s.studio_id, m.title
+                                 Sort Key: s.studio_id
+                                 Sort Method: quicksort  Memory: 346kB
+                                 Buffers: shared hit=224
+                                 ->  Hash Join  (cost=13.60..778.09 rows=108 width=158) (actual time=2.313..5.719 rows=3360.00 loops=1)
+                                       Output: s.schedule_id, s.movie_id, s.show_date, s.start_time, s.studio_id, m.title
+                                       Hash Cond: ((s.movie_id)::text = (m.movie_id)::text)
+                                       Buffers: shared hit=224
+                                       ->  Seq Scan on public.schedules s  (cost=0.00..763.00 rows=108 width=40) (actual time=2.280..5.206 rows=3360.00 loops=1)
+                                             Output: s.schedule_id, s.movie_id, s.studio_id, s.show_date, s.start_time, s.price, s.status
+                                             Filter: (((s.show_date)::date >= '2026-04-01'::date) AND ((s.show_date)::date <= '2026-04-14'::date))
+                                             Rows Removed by Filter: 18240
+                                             Buffers: shared hit=223
+                                       ->  Hash  (cost=11.60..11.60 rows=160 width=236) (actual time=0.017..0.018 rows=12.00 loops=1)
+                                             Output: m.title, m.movie_id
+                                             Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                             Buffers: shared hit=1
+                                             ->  Seq Scan on public.movies m  (cost=0.00..11.60 rows=160 width=236) (actual time=0.011..0.012 rows=12.00 loops=1)
+                                                   Output: m.title, m.movie_id
+                                                   Buffers: shared hit=1
+                     ->  Index Scan using idx_tiket_schedule_id on public.tiket t  (cost=0.42..9.04 rows=48 width=22) (actual time=0.003..0.006 rows=41.50 loops=840)
+                           Output: t.tiket_id, t.schedule_id, t.seat_category, t.final_price, t.trans_time, t.payment_type
+                           Index Cond: ((t.schedule_id)::text = (s.schedule_id)::text)
+                           Index Searches: 840
+                           Buffers: shared hit=3748
+ Query Identifier: 5147245055178888472
+ Planning:
+   Buffers: shared hit=52
+ Planning Time: 0.470 ms
+ Execution Time: 51.363 ms
+(75 rows)
+
+                                                                                                                                                                QUERY PLAN                                                                                                                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=836.90..837.17 rows=108 width=158) (actual time=23.194..23.199 rows=1.00 loops=1)
+   Output: per_schedule.city, ((count(DISTINCT per_schedule.cinema_id))::integer), ((sum(per_schedule.total_tickets))::integer), (sum(per_schedule.total_revenue)), ((sum(per_schedule.total_capacity))::integer), ((count(per_schedule.schedule_id))::integer), (avg(per_schedule.schedule_occupancy)), (sum(per_schedule.total_tickets))
+   Sort Key: (sum(per_schedule.total_revenue)) DESC, (sum(per_schedule.total_tickets)) DESC, per_schedule.city
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=3979
+   ->  GroupAggregate  (cost=828.66..833.25 rows=108 width=158) (actual time=23.173..23.177 rows=1.00 loops=1)
+         Output: per_schedule.city, (count(DISTINCT per_schedule.cinema_id))::integer, (sum(per_schedule.total_tickets))::integer, sum(per_schedule.total_revenue), (sum(per_schedule.total_capacity))::integer, (count(per_schedule.schedule_id))::integer, avg(per_schedule.schedule_occupancy), sum(per_schedule.total_tickets)
+         Group Key: per_schedule.city
+         Buffers: shared hit=3973
+         ->  Sort  (cost=828.66..828.93 rows=108 width=268) (actual time=23.043..23.076 rows=840.00 loops=1)
+               Output: per_schedule.city, per_schedule.cinema_id, per_schedule.total_tickets, per_schedule.total_revenue, per_schedule.total_capacity, per_schedule.schedule_id, per_schedule.schedule_occupancy
+               Sort Key: per_schedule.city, per_schedule.cinema_id
+               Sort Method: quicksort  Memory: 84kB
+               Buffers: shared hit=3973
+               ->  Subquery Scan on per_schedule  (cost=821.24..825.02 rows=108 width=268) (actual time=22.656..22.817 rows=840.00 loops=1)
+                     Output: per_schedule.city, per_schedule.cinema_id, per_schedule.total_tickets, per_schedule.total_revenue, per_schedule.total_capacity, per_schedule.schedule_id, per_schedule.schedule_occupancy
+                     Buffers: shared hit=3973
+                     ->  HashAggregate  (cost=821.24..823.94 rows=108 width=268) (actual time=22.654..22.755 rows=840.00 loops=1)
+                           Output: c.city, c.cinema_id, s.schedule_id, st.total_capacity, (count(t.tiket_id))::integer, (COALESCE(sum(t.final_price), '0'::real))::double precision, CASE WHEN (st.total_capacity > 0) THEN ((count(t.tiket_id))::double precision / (st.total_capacity)::double precision) ELSE '0'::double precision END
+                           Group Key: c.cinema_id, s.schedule_id, st.total_capacity
+                           Batches: 1  Memory Usage: 193kB
+                           Buffers: shared hit=3973
+                           ->  Nested Loop Left Join  (cost=1.69..818.60 rows=211 width=262) (actual time=1.620..17.458 rows=34863.00 loops=1)
+                                 Output: c.cinema_id, s.schedule_id, st.total_capacity, c.city, t.tiket_id, t.final_price
+                                 Buffers: shared hit=3973
+                                 ->  Nested Loop  (cost=1.26..770.99 rows=5 width=248) (actual time=1.608..9.383 rows=840.00 loops=1)
+                                       Output: s.schedule_id, st.total_capacity, c.city, c.cinema_id
+                                       Join Filter: ((s.studio_id)::text = (st.studio_id)::text)
+                                       Rows Removed by Join Filter: 49560
+                                       Buffers: shared hit=225
+                                       ->  Seq Scan on public.schedules s  (cost=0.00..763.00 rows=108 width=18) (actual time=1.527..4.394 rows=3360.00 loops=1)
+                                             Output: s.schedule_id, s.movie_id, s.studio_id, s.show_date, s.start_time, s.price, s.status
+                                             Filter: (((s.show_date)::date >= '2026-04-01'::date) AND ((s.show_date)::date <= '2026-04-14'::date))
+                                             Rows Removed by Filter: 18240
+                                             Buffers: shared hit=223
+                                       ->  Materialize  (cost=1.26..3.13 rows=3 width=250) (actual time=0.000..0.001 rows=15.00 loops=3360)
+                                             Output: st.total_capacity, st.studio_id, c.city, c.cinema_id
+                                             Storage: Memory  Maximum Storage: 17kB
+                                             Buffers: shared hit=2
+                                             ->  Hash Join  (cost=1.26..3.12 rows=3 width=250) (actual time=0.021..0.030 rows=15.00 loops=1)
+                                                   Output: st.total_capacity, st.studio_id, c.city, c.cinema_id
+                                                   Hash Cond: ((st.cinema_id)::text = (c.cinema_id)::text)
+                                                   Buffers: shared hit=2
+                                                   ->  Seq Scan on public.studio st  (cost=0.00..1.60 rows=60 width=19) (actual time=0.004..0.007 rows=60.00 loops=1)
+                                                         Output: st.studio_id, st.cinema_id, st.studio_name, st.total_capacity, st.screen_type
+                                                         Buffers: shared hit=1
+                                                   ->  Hash  (cost=1.25..1.25 rows=1 width=236) (actual time=0.010..0.011 rows=5.00 loops=1)
+                                                         Output: c.city, c.cinema_id
+                                                         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                         Buffers: shared hit=1
+                                                         ->  Seq Scan on public.cinema c  (cost=0.00..1.25 rows=1 width=236) (actual time=0.006..0.007 rows=5.00 loops=1)
+                                                               Output: c.city, c.cinema_id
+                                                               Filter: ((c.city)::text = 'Jakarta'::text)
+                                                               Rows Removed by Filter: 15
+                                                               Buffers: shared hit=1
+                                 ->  Index Scan using idx_tiket_schedule_id on public.tiket t  (cost=0.42..9.04 rows=48 width=22) (actual time=0.002..0.006 rows=41.50 loops=840)
+                                       Output: t.tiket_id, t.schedule_id, t.seat_category, t.final_price, t.trans_time, t.payment_type
+                                       Index Cond: ((t.schedule_id)::text = (s.schedule_id)::text)
+                                       Index Searches: 840
+                                       Buffers: shared hit=3748
+ Query Identifier: 3616089821090537256
+ Planning:
+   Buffers: shared hit=39
+ Planning Time: 0.430 ms
+ Execution Time: 23.273 ms
+(65 rows)
+
+                                                                                                                                                   QUERY PLAN                                                                                                                                                    
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=858.35..866.62 rows=200 width=528) (actual time=36.655..36.945 rows=700.00 loops=1)
+   Output: per_schedule.cinema_id, per_schedule.cinema_name, per_schedule.city, per_schedule.show_date, per_schedule.time_slot, per_schedule.movie_id, per_schedule.title, (COALESCE(sum(per_schedule.total_tickets), '0'::bigint))::integer, (COALESCE(sum(per_schedule.total_capacity), '0'::bigint))::integer
+   Group Key: per_schedule.cinema_id, per_schedule.show_date, per_schedule.time_slot, per_schedule.title, per_schedule.cinema_name, per_schedule.city, per_schedule.movie_id
+   Buffers: shared hit=3974
+   ->  Sort  (cost=858.35..858.88 rows=211 width=528) (actual time=36.648..36.682 rows=840.00 loops=1)
+         Output: per_schedule.cinema_id, per_schedule.cinema_name, per_schedule.city, per_schedule.show_date, per_schedule.time_slot, per_schedule.movie_id, per_schedule.title, per_schedule.total_tickets, per_schedule.total_capacity
+         Sort Key: per_schedule.cinema_id, per_schedule.show_date, per_schedule.time_slot, per_schedule.title, per_schedule.cinema_name, per_schedule.city, per_schedule.movie_id
+         Sort Method: quicksort  Memory: 105kB
+         Buffers: shared hit=3974
+         ->  Subquery Scan on per_schedule  (cost=841.24..850.20 rows=211 width=528) (actual time=35.469..35.633 rows=840.00 loops=1)
+               Output: per_schedule.cinema_id, per_schedule.cinema_name, per_schedule.city, per_schedule.show_date, per_schedule.time_slot, per_schedule.movie_id, per_schedule.title, per_schedule.total_tickets, per_schedule.total_capacity
+               Buffers: shared hit=3974
+               ->  HashAggregate  (cost=841.24..848.09 rows=211 width=536) (actual time=35.467..35.566 rows=840.00 loops=1)
+                     Output: c.cinema_id, c.cinema_name, c.city, s.show_date, ((lpad(((EXTRACT(hour FROM (s.start_time)::time without time zone))::integer)::text, 2, '0'::text) || ':00'::text)), s.movie_id, m.title, s.schedule_id, st.total_capacity, (count(t.tiket_id))::integer
+                     Group Key: c.cinema_id, c.cinema_name, s.show_date, (lpad(((EXTRACT(hour FROM (s.start_time)::time without time zone))::integer)::text, 2, '0'::text) || ':00'::text), s.movie_id, m.title, s.schedule_id, st.total_capacity
+                     Batches: 1  Memory Usage: 193kB
+                     Buffers: shared hit=3974
+                     ->  Nested Loop Left Join  (cost=15.29..836.49 rows=211 width=542) (actual time=1.700..25.533 rows=34863.00 loops=1)
+                           Output: c.cinema_id, c.cinema_name, s.show_date, (lpad(((EXTRACT(hour FROM (s.start_time)::time without time zone))::integer)::text, 2, '0'::text) || ':00'::text), s.movie_id, m.title, s.schedule_id, st.total_capacity, c.city, t.tiket_id
+                           Buffers: shared hit=3974
+                           ->  Hash Join  (cost=14.86..784.65 rows=5 width=506) (actual time=1.677..9.678 rows=840.00 loops=1)
+                                 Output: s.show_date, s.start_time, s.movie_id, s.schedule_id, m.title, st.total_capacity, c.cinema_id, c.cinema_name, c.city
+                                 Hash Cond: ((s.movie_id)::text = (m.movie_id)::text)
+                                 Buffers: shared hit=226
+                                 ->  Nested Loop  (cost=1.26..770.99 rows=5 width=388) (actual time=1.668..9.524 rows=840.00 loops=1)
+                                       Output: s.show_date, s.start_time, s.movie_id, s.schedule_id, st.total_capacity, c.cinema_id, c.cinema_name, c.city
+                                       Join Filter: ((s.studio_id)::text = (st.studio_id)::text)
+                                       Rows Removed by Join Filter: 49560
+                                       Buffers: shared hit=225
+                                       ->  Seq Scan on public.schedules s  (cost=0.00..763.00 rows=108 width=40) (actual time=1.592..4.461 rows=3360.00 loops=1)
+                                             Output: s.schedule_id, s.movie_id, s.studio_id, s.show_date, s.start_time, s.price, s.status
+                                             Filter: (((s.show_date)::date >= '2026-04-01'::date) AND ((s.show_date)::date <= '2026-04-14'::date))
+                                             Rows Removed by Filter: 18240
+                                             Buffers: shared hit=223
+                                       ->  Materialize  (cost=1.26..3.13 rows=3 width=368) (actual time=0.000..0.001 rows=15.00 loops=3360)
+                                             Output: st.total_capacity, st.studio_id, c.cinema_id, c.cinema_name, c.city
+                                             Storage: Memory  Maximum Storage: 18kB
+                                             Buffers: shared hit=2
+                                             ->  Hash Join  (cost=1.26..3.12 rows=3 width=368) (actual time=0.018..0.027 rows=15.00 loops=1)
+                                                   Output: st.total_capacity, st.studio_id, c.cinema_id, c.cinema_name, c.city
+                                                   Hash Cond: ((st.cinema_id)::text = (c.cinema_id)::text)
+                                                   Buffers: shared hit=2
+                                                   ->  Seq Scan on public.studio st  (cost=0.00..1.60 rows=60 width=19) (actual time=0.004..0.007 rows=60.00 loops=1)
+                                                         Output: st.studio_id, st.cinema_id, st.studio_name, st.total_capacity, st.screen_type
+                                                         Buffers: shared hit=1
+                                                   ->  Hash  (cost=1.25..1.25 rows=1 width=354) (actual time=0.008..0.009 rows=5.00 loops=1)
+                                                         Output: c.cinema_id, c.cinema_name, c.city
+                                                         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                         Buffers: shared hit=1
+                                                         ->  Seq Scan on public.cinema c  (cost=0.00..1.25 rows=1 width=354) (actual time=0.004..0.005 rows=5.00 loops=1)
+                                                               Output: c.cinema_id, c.cinema_name, c.city
+                                                               Filter: ((c.city)::text = 'Jakarta'::text)
+                                                               Rows Removed by Filter: 15
+                                                               Buffers: shared hit=1
+                                 ->  Hash  (cost=11.60..11.60 rows=160 width=236) (actual time=0.007..0.007 rows=12.00 loops=1)
+                                       Output: m.title, m.movie_id
+                                       Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                       Buffers: shared hit=1
+                                       ->  Seq Scan on public.movies m  (cost=0.00..11.60 rows=160 width=236) (actual time=0.004..0.005 rows=12.00 loops=1)
+                                             Output: m.title, m.movie_id
+                                             Buffers: shared hit=1
+                           ->  Index Scan using idx_tiket_schedule_id on public.tiket t  (cost=0.42..9.04 rows=48 width=18) (actual time=0.002..0.006 rows=41.50 loops=840)
+                                 Output: t.tiket_id, t.schedule_id, t.seat_category, t.final_price, t.trans_time, t.payment_type
+                                 Index Cond: ((t.schedule_id)::text = (s.schedule_id)::text)
+                                 Index Searches: 840
+                                 Buffers: shared hit=3748
+ Query Identifier: -1461526570254509620
+ Planning:
+   Buffers: shared hit=10
+ Planning Time: 0.582 ms
+ Execution Time: 37.052 ms
+(71 rows)
+

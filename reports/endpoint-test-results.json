@@ -1,8 +1,80 @@
 {
   "summary": {
     "total": 60,
-    "passed": 36,
-    "failed": 24
+    "passed": 56,
+    "failed": 4,
+    "slowest": [
+      {
+        "name": "Notification Read",
+        "method": "PATCH",
+        "url": "/api/v1/notifications/system-health/read",
+        "statusCode": 200,
+        "duration_ms": 16098
+      },
+      {
+        "name": "Notification Read All",
+        "method": "PATCH",
+        "url": "/api/v1/notifications/read-all",
+        "statusCode": 200,
+        "duration_ms": 8161
+      },
+      {
+        "name": "Alerts Summary",
+        "method": "GET",
+        "url": "/api/v1/alerts/summary",
+        "statusCode": 200,
+        "duration_ms": 7842
+      },
+      {
+        "name": "Notifications List",
+        "method": "GET",
+        "url": "/api/v1/notifications?limit=5",
+        "statusCode": 200,
+        "duration_ms": 7526
+      },
+      {
+        "name": "System Status",
+        "method": "GET",
+        "url": "/api/v1/system/status",
+        "statusCode": 200,
+        "duration_ms": 7468
+      },
+      {
+        "name": "Dashboard Notifications",
+        "method": "GET",
+        "url": "/api/v1/dashboard/notifications?limit=5",
+        "statusCode": 200,
+        "duration_ms": 7399
+      },
+      {
+        "name": "Notification Detail",
+        "method": "GET",
+        "url": "/api/v1/notifications/system-health",
+        "statusCode": 200,
+        "duration_ms": 6898
+      },
+      {
+        "name": "Stats Cinema",
+        "method": "GET",
+        "url": "/api/v1/stats/cinema",
+        "statusCode": 200,
+        "duration_ms": 6496
+      },
+      {
+        "name": "Cinemas List",
+        "method": "GET",
+        "url": "/api/v1/cinemas?limit=5",
+        "statusCode": 200,
+        "duration_ms": 5831
+      },
+      {
+        "name": "Dashboard Executive",
+        "method": "GET",
+        "url": "/api/v1/dashboard/executive",
+        "statusCode": 500,
+        "duration_ms": 4711
+      }
+    ]
   },
   "sample_ids": {
     "movie_id": "M001",
@@ -17,6 +89,7 @@
       "method": "GET",
       "url": "/api/v1/",
       "statusCode": 200,
+      "duration_ms": 17,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -33,6 +106,7 @@
       "method": "GET",
       "url": "/api/v1/openapi.json",
       "statusCode": 200,
+      "duration_ms": 4,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -44,6 +118,7 @@
       "method": "GET",
       "url": "/api/v1/docs",
       "statusCode": 200,
+      "duration_ms": 1,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -55,6 +130,7 @@
       "method": "POST",
       "url": "/api/v1/auth/login",
       "statusCode": 200,
+      "duration_ms": 1204,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -62,8 +138,8 @@
       "body": {
         "success": true,
         "data": {
-          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBMDAxIiwibmFtZSI6IkFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MTc5NTE3MjQzfQ.gxSEcPVjM3V4B3ynfQKc--CQJeNSCwjfpZeHPi5qMpg",
-          "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBMDAxIiwibmFtZSI6IkFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3Njc4MDcxNzI0Nn0.DZECH9_2TttjAKbBqjd1k0QJyS1dF27JR7YZDVFY-BQ",
+          "token": "[REDACTED]",
+          "refresh_token": "[REDACTED]",
           "user": {
             "id": "A001",
             "name": "Admin",
@@ -78,6 +154,7 @@
       "method": "GET",
       "url": "/api/v1/auth/me",
       "statusCode": 200,
+      "duration_ms": 1,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -97,6 +174,7 @@
       "method": "POST",
       "url": "/api/v1/auth/refresh",
       "statusCode": 200,
+      "duration_ms": 1800,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -104,8 +182,8 @@
       "body": {
         "success": true,
         "data": {
-          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBMDAxIiwibmFtZSI6IkFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MTc5NTE5NjgzfQ.j_NPpNEjJex0d_zHjWjKl-aAqYHx2IYpSWw14s_YfL0",
-          "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBMDAxIiwibmFtZSI6IkFkbWluIiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3Njc4MDcxOTY4NH0.4CdpFqo-K6yYM3uoaYAZ_2ZZ6xs7v7ZFv_-iZW6w6QY",
+          "token": "[REDACTED]",
+          "refresh_token": "[REDACTED]",
           "user": {
             "id": "A001",
             "name": "Admin",
@@ -120,6 +198,7 @@
       "method": "GET",
       "url": "/api/v1/movies?limit=5",
       "statusCode": 200,
+      "duration_ms": 403,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -193,6 +272,7 @@
       "method": "GET",
       "url": "/api/v1/movies/M001",
       "statusCode": 200,
+      "duration_ms": 2073,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -248,17 +328,19 @@
       "method": "GET",
       "url": "/api/v1/movies/M001/performance",
       "statusCode": 200,
+      "duration_ms": 1488,
       "ok": true,
       "acceptedStatuses": [
         200
       ],
-      "body": "{\"success\":true,\"data\":{\"metrics\":{\"total_tickets\":109140,\"total_revenue\":5156094464,\"avg_ticket_price\":47242.94,\"showing_at_count\":20},\"showing_at\":[\"C001\",\"C002\",\"C003\",\"C004\",\"C005\",\"C006\",\"C007\",\"C008\",\"C009\",\"C010\",\"C011\",\"C012\",\"C013\",\"C014\",\"C015\",\"C016\",\"C017\",\"C018\",\"C019\",\"C020\"],\"seat_distribution\":{\"Regular\":5338,\"Sweetbox\":1361},\"trend\":[{\"time_group\":\"2026-02-13T17:00:00.000Z\",\"tickets_sold\":2287,\"revenue\":121160000},{\"time_group\":\"2026-02-14T17:00:00.000Z\",\"tickets_sold\":3960,\"revenue\":210420000},{\"time_group\":\"2026-02-15T17:00:00.000Z\",\"tickets_sold\":1939,\"revenue\":73430000},{\"time_group\":\"2026-02-16T17:00:00.000Z\",\"tickets_sold\":1546,\"revenue\":59000000},{\"time_group\":\"2026-02-17T17:00:00.000Z\",\"tickets_sold\":1896,\"revenue\":71895000},{\"time_group\":\"2026-02-18T17:00:00.000Z\",\"tickets_sold\":1947,\"revenue\":73965000},{\"time_group\":\"2026-02-19T17:00:00.000Z\",\"tickets_sold\":2990,\"revenue\":158815008},{\"time_group\":\"2026-02-20T17:00:00.000Z\",\"tickets_sold\":3103,\"revenue\":164690000},{\"time_group\":\"2026-02-21T17:00:00.000Z\",\"tickets_sold\":4856,\"revenue\":256570016},{\"time_group\":\"2026-02-22T17:00:00.000Z\",\"tickets_sold\":1677,\"revenue\":63645000},{\"time_group\":\"2026-02-23T17:00:00.000Z\",\"tickets_sold\":1927,\"revenue\":72995000},{\"time_group\":\"2026-02-24T17:00:00.000Z\",\"tickets_sold\":2485,\"revenue\":95045000},{\"time_group\":\"2026-02-25T17:00:00.000Z\",\"tickets_sold\":2168,\"revenue\":82615000},{\"time_group\":\"2026-02-26T17:00:00.000Z\",\"tickets_sold\":4649,\"revenue\":246040000},{\"time_group\":\"2026-02-27T17:00:00.000Z\",\"tickets_sold\":2156,\"revenue\":114280000},{\"time_group\":\"2026-02-28T17:00:00.000Z\",\"tickets_sold\":4668,\"revenue\":247170000},{\"time_group\":\"2026-03-01T17:00:00.000Z\",\"tickets_sold\":1687,\"revenue\":64250000},{\"time_group\":\"2026-03-02T17:00:00.000Z\",\"tickets_sold\":1689,\"revenue\":64230000},{\"time_group\":\"2026-03-03T17:00:00.000Z\",\"tickets_sold\":1910,\"revenue\":72820000},{\"time_group\":\"2026-03-04T17:00:00.000Z\",\"tickets_sold\":1935,\"revenue\":73260000},{\"time_group\":\"2026-03-05T17:00:00.000Z\",\"tickets_sold\":5059,\"revenue\":268070016},{\"time_group\":\"2026-03-06T17:00:00.000Z\",\"tickets_sold\":4550,\"revenue\":240640000},{\"time_group\":\"2026-03-07T17:00:00.000Z\",\"tickets_sold\":3919,\"revenue\":207635008},{\"time_group\":\"2026-03-08T17:00:00.000Z\",\"tickets_sold\":2221,\"revenue\":83780000},{\"time_group\":\"2026-03-09T17:00:00.000Z\",\"tickets_sold\":1324,\"revenue\":50810000},{\"time_group\":\"2026-03-10T17:00:00.000Z\",\"tickets_sold\":1510,\"revenue\":57065000},{\"time_group\":\"2026-03-11T17:00:00.000Z\",\"tickets_sold\":2258,\"revenue\":86395000},{\"time_group\":\"2026-03-12T17:00:00.000Z\",\"tickets_sold\":5139,\"revenue\":271980000},{\"time_group\":\"2026-03-13T17:00:00.000Z\",\"tickets_sold\":3456,\"revenue\":182955008},{\"time_group\":\"2026-03-14T17:00:00.000Z\",\"tickets_sold\":4231,\"revenue\":223910016},{\"time_group\":\"2026-03-15T17:00:00.000Z\",\"tickets_sold\":1378,\"revenue\":52325000},{\"time_group\":\"2026-03-16T17:00:00.000Z\",\"tickets_sold\":1878,\"revenue\":71100000},{\"time_group\":\"2026-03-17T17:00:00.000Z\",... [truncated]"
+      "body": "{\"success\":true,\"data\":{\"metrics\":{\"total_tickets\":109140,\"total_revenue\":5156163072,\"avg_ticket_price\":47243.57,\"showing_at_count\":20},\"showing_at\":[\"C001\",\"C002\",\"C003\",\"C004\",\"C005\",\"C006\",\"C007\",\"C008\",\"C009\",\"C010\",\"C011\",\"C012\",\"C013\",\"C014\",\"C015\",\"C016\",\"C017\",\"C018\",\"C019\",\"C020\"],\"seat_distribution\":{\"Regular\":5338,\"Sweetbox\":1361},\"trend\":[{\"time_group\":\"2026-02-13T17:00:00.000Z\",\"tickets_sold\":2287,\"revenue\":121160000},{\"time_group\":\"2026-02-14T17:00:00.000Z\",\"tickets_sold\":3960,\"revenue\":210420000},{\"time_group\":\"2026-02-15T17:00:00.000Z\",\"tickets_sold\":1939,\"revenue\":73430000},{\"time_group\":\"2026-02-16T17:00:00.000Z\",\"tickets_sold\":1546,\"revenue\":59000000},{\"time_group\":\"2026-02-17T17:00:00.000Z\",\"tickets_sold\":1896,\"revenue\":71895000},{\"time_group\":\"2026-02-18T17:00:00.000Z\",\"tickets_sold\":1947,\"revenue\":73965000},{\"time_group\":\"2026-02-19T17:00:00.000Z\",\"tickets_sold\":2990,\"revenue\":158815008},{\"time_group\":\"2026-02-20T17:00:00.000Z\",\"tickets_sold\":3103,\"revenue\":164690000},{\"time_group\":\"2026-02-21T17:00:00.000Z\",\"tickets_sold\":4856,\"revenue\":256570000},{\"time_group\":\"2026-02-22T17:00:00.000Z\",\"tickets_sold\":1677,\"revenue\":63645000},{\"time_group\":\"2026-02-23T17:00:00.000Z\",\"tickets_sold\":1927,\"revenue\":72995000},{\"time_group\":\"2026-02-24T17:00:00.000Z\",\"tickets_sold\":2485,\"revenue\":95045000},{\"time_group\":\"2026-02-25T17:00:00.000Z\",\"tickets_sold\":2168,\"revenue\":82615000},{\"time_group\":\"2026-02-26T17:00:00.000Z\",\"tickets_sold\":4649,\"revenue\":246040000},{\"time_group\":\"2026-02-27T17:00:00.000Z\",\"tickets_sold\":2156,\"revenue\":114280000},{\"time_group\":\"2026-02-28T17:00:00.000Z\",\"tickets_sold\":4668,\"revenue\":247170000},{\"time_group\":\"2026-03-01T17:00:00.000Z\",\"tickets_sold\":1687,\"revenue\":64250000},{\"time_group\":\"2026-03-02T17:00:00.000Z\",\"tickets_sold\":1689,\"revenue\":64230000},{\"time_group\":\"2026-03-03T17:00:00.000Z\",\"tickets_sold\":1910,\"revenue\":72820000},{\"time_group\":\"2026-03-04T17:00:00.000Z\",\"tickets_sold\":1935,\"revenue\":73260000},{\"time_group\":\"2026-03-05T17:00:00.000Z\",\"tickets_sold\":5059,\"revenue\":268070016},{\"time_group\":\"2026-03-06T17:00:00.000Z\",\"tickets_sold\":4550,\"revenue\":240640000},{\"time_group\":\"2026-03-07T17:00:00.000Z\",\"tickets_sold\":3919,\"revenue\":207634992},{\"time_group\":\"2026-03-08T17:00:00.000Z\",\"tickets_sold\":2221,\"revenue\":83780000},{\"time_group\":\"2026-03-09T17:00:00.000Z\",\"tickets_sold\":1324,\"revenue\":50810000},{\"time_group\":\"2026-03-10T17:00:00.000Z\",\"tickets_sold\":1510,\"revenue\":57065000},{\"time_group\":\"2026-03-11T17:00:00.000Z\",\"tickets_sold\":2258,\"revenue\":86395000},{\"time_group\":\"2026-03-12T17:00:00.000Z\",\"tickets_sold\":5139,\"revenue\":271980000},{\"time_group\":\"2026-03-13T17:00:00.000Z\",\"tickets_sold\":3456,\"revenue\":182955008},{\"time_group\":\"2026-03-14T17:00:00.000Z\",\"tickets_sold\":4231,\"revenue\":223910000},{\"time_group\":\"2026-03-15T17:00:00.000Z\",\"tickets_sold\":1378,\"revenue\":52325000},{\"time_group\":\"2026-03-16T17:00:00.000Z\",\"tickets_sold\":1878,\"revenue\":71100000},{\"time_group\":\"2026-03-17T17:00:00.000Z\",... [truncated]"
     },
     {
       "name": "Cinemas List",
       "method": "GET",
       "url": "/api/v1/cinemas?limit=5",
       "statusCode": 200,
+      "duration_ms": 5831,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -429,6 +511,7 @@
       "method": "GET",
       "url": "/api/v1/cinemas/C001",
       "statusCode": 200,
+      "duration_ms": 260,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -455,6 +538,7 @@
       "method": "GET",
       "url": "/api/v1/cinemas/C001/performance",
       "statusCode": 200,
+      "duration_ms": 876,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -494,6 +578,7 @@
       "method": "GET",
       "url": "/api/v1/studios?limit=5",
       "statusCode": 200,
+      "duration_ms": 401,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -557,6 +642,7 @@
       "method": "GET",
       "url": "/api/v1/studios/ST-C001-1",
       "statusCode": 200,
+      "duration_ms": 209,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -580,6 +666,7 @@
       "method": "GET",
       "url": "/api/v1/schedules?limit=5",
       "statusCode": 200,
+      "duration_ms": 417,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -677,6 +764,7 @@
       "method": "GET",
       "url": "/api/v1/schedules/S000001",
       "statusCode": 200,
+      "duration_ms": 202,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -705,6 +793,7 @@
       "method": "GET",
       "url": "/api/v1/tikets?limit=5",
       "statusCode": 200,
+      "duration_ms": 700,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -713,44 +802,44 @@
         "success": true,
         "data": [
           {
-            "tiket_id": "T00912538",
-            "schedule_id": "S021592",
+            "tiket_id": "T00906983",
+            "schedule_id": "S021400",
             "movie_id": "M007",
-            "cinema_id": "C020",
-            "seat_category": "Sweetbox",
-            "final_price": 50000,
+            "cinema_id": "C004",
+            "seat_category": "Regular",
+            "final_price": 35000,
             "trans_time": "2026-05-14T19:00:00Z",
-            "payment_type": "DEBIT",
+            "payment_type": "CASH",
             "status": "success",
             "is_mock_status": true
           },
           {
-            "tiket_id": "T00906458",
-            "schedule_id": "S021384",
-            "movie_id": "M010",
-            "cinema_id": "C002",
-            "seat_category": "Sweetbox",
-            "final_price": 50000,
+            "tiket_id": "T00907087",
+            "schedule_id": "S021404",
+            "movie_id": "M012",
+            "cinema_id": "C004",
+            "seat_category": "Regular",
+            "final_price": 35000,
             "trans_time": "2026-05-14T19:00:00Z",
             "payment_type": "QRIS",
             "status": "success",
             "is_mock_status": true
           },
           {
-            "tiket_id": "T00906731",
-            "schedule_id": "S021392",
-            "movie_id": "M010",
+            "tiket_id": "T00906877",
+            "schedule_id": "S021396",
+            "movie_id": "M012",
             "cinema_id": "C003",
-            "seat_category": "Sweetbox",
-            "final_price": 50000,
+            "seat_category": "Regular",
+            "final_price": 35000,
             "trans_time": "2026-05-14T19:00:00Z",
             "payment_type": "QRIS",
             "status": "success",
             "is_mock_status": true
           },
           {
-            "tiket_id": "T00906601",
-            "schedule_id": "S021388",
+            "tiket_id": "T00906853",
+            "schedule_id": "S021396",
             "movie_id": "M012",
             "cinema_id": "C003",
             "seat_category": "Regular",
@@ -761,14 +850,14 @@
             "is_mock_status": true
           },
           {
-            "tiket_id": "T00912626",
-            "schedule_id": "S021596",
-            "movie_id": "M010",
-            "cinema_id": "C020",
+            "tiket_id": "T00908897",
+            "schedule_id": "S021468",
+            "movie_id": "M008",
+            "cinema_id": "C009",
             "seat_category": "Regular",
             "final_price": 35000,
             "trans_time": "2026-05-14T19:00:00Z",
-            "payment_type": "DEBIT",
+            "payment_type": "CASH",
             "status": "success",
             "is_mock_status": true
           }
@@ -797,6 +886,7 @@
       "method": "GET",
       "url": "/api/v1/tickets?limit=5",
       "statusCode": 200,
+      "duration_ms": 799,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -805,14 +895,14 @@
         "success": true,
         "data": [
           {
-            "ticket_id": "T00910492",
-            "schedule_id": "S021524",
-            "movie_id": "M010",
-            "cinema_id": "C014",
-            "seat_category": "Sweetbox",
-            "final_price": 50000,
+            "ticket_id": "T00908897",
+            "schedule_id": "S021468",
+            "movie_id": "M008",
+            "cinema_id": "C009",
+            "seat_category": "Regular",
+            "final_price": 35000,
             "trans_time": "2026-05-14T19:00:00Z",
-            "payment_type": "QRIS",
+            "payment_type": "CASH",
             "status": "success",
             "is_mock_status": true
           },
@@ -853,10 +943,10 @@
             "is_mock_status": true
           },
           {
-            "ticket_id": "T00910939",
-            "schedule_id": "S021540",
-            "movie_id": "M008",
-            "cinema_id": "C015",
+            "ticket_id": "T00909195",
+            "schedule_id": "S021480",
+            "movie_id": "M007",
+            "cinema_id": "C010",
             "seat_category": "Regular",
             "final_price": 35000,
             "trans_time": "2026-05-14T19:00:00Z",
@@ -889,6 +979,7 @@
       "method": "GET",
       "url": "/api/v1/tikets/T00000001",
       "statusCode": 200,
+      "duration_ms": 227,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -915,6 +1006,7 @@
       "method": "GET",
       "url": "/api/v1/tickets/T00000001",
       "statusCode": 200,
+      "duration_ms": 226,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -940,6 +1032,7 @@
       "method": "GET",
       "url": "/api/v1/movie?top10=true",
       "statusCode": 404,
+      "duration_ms": 1,
       "ok": false,
       "acceptedStatuses": [
         200
@@ -957,6 +1050,7 @@
       "method": "GET",
       "url": "/api/v1/movies/rankings?top10=true",
       "statusCode": 200,
+      "duration_ms": 431,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -973,7 +1067,7 @@
             "rating_usia": "SU",
             "duration_min": 117,
             "tickets_sold": 54719,
-            "revenue": 2555509248,
+            "revenue": 2554976768,
             "seat_distribution": {
               "Regular": 43770,
               "VIP": 0,
@@ -989,7 +1083,7 @@
             "rating_usia": "R13",
             "duration_min": 117,
             "tickets_sold": 50745,
-            "revenue": 2361862400,
+            "revenue": 2361857280,
             "seat_distribution": {
               "Regular": 40570,
               "VIP": 0,
@@ -1005,7 +1099,7 @@
             "rating_usia": "SU",
             "duration_min": 105,
             "tickets_sold": 49918,
-            "revenue": 2317585408,
+            "revenue": 2317469184,
             "seat_distribution": {
               "Regular": 39850,
               "VIP": 0,
@@ -1021,7 +1115,7 @@
             "rating_usia": "R13",
             "duration_min": 136,
             "tickets_sold": 47065,
-            "revenue": 2164434432,
+            "revenue": 2164275200,
             "seat_distribution": {
               "Regular": 37821,
               "VIP": 0,
@@ -1037,7 +1131,7 @@
             "rating_usia": "R13",
             "duration_min": 132,
             "tickets_sold": 31856,
-            "revenue": 1542881024,
+            "revenue": 1542770432,
             "seat_distribution": {
               "Regular": 25535,
               "VIP": 0,
@@ -1053,7 +1147,7 @@
             "rating_usia": "SU",
             "duration_min": 103,
             "tickets_sold": 28229,
-            "revenue": 1320406528,
+            "revenue": 1320502528,
             "seat_distribution": {
               "Regular": 22644,
               "VIP": 0,
@@ -1069,7 +1163,7 @@
             "rating_usia": "R13",
             "duration_min": 130,
             "tickets_sold": 25355,
-            "revenue": 1218609152,
+            "revenue": 1218628736,
             "seat_distribution": {
               "Regular": 20314,
               "VIP": 0,
@@ -1085,7 +1179,7 @@
             "rating_usia": "SU",
             "duration_min": 120,
             "tickets_sold": 22901,
-            "revenue": 1084123648,
+            "revenue": 1084131328,
             "seat_distribution": {
               "Regular": 18294,
               "VIP": 0,
@@ -1109,6 +1203,7 @@
       "method": "GET",
       "url": "/api/v1/stats/summary?compare=true",
       "statusCode": 200,
+      "duration_ms": 1428,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1147,6 +1242,7 @@
       "method": "GET",
       "url": "/api/v1/stats/trends?group_by=daily",
       "statusCode": 200,
+      "duration_ms": 209,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1191,6 +1287,7 @@
       "method": "GET",
       "url": "/api/v1/stats/occupancy?group_by=daily",
       "statusCode": 200,
+      "duration_ms": 218,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1232,6 +1329,7 @@
       "method": "GET",
       "url": "/api/v1/stats/movie",
       "statusCode": 200,
+      "duration_ms": 3479,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1304,6 +1402,7 @@
       "method": "GET",
       "url": "/api/v1/stats/cinema",
       "statusCode": 200,
+      "duration_ms": 6496,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1314,7 +1413,8 @@
       "name": "Dashboard Executive",
       "method": "GET",
       "url": "/api/v1/dashboard/executive",
-      "statusCode": 401,
+      "statusCode": 500,
+      "duration_ms": 4711,
       "ok": false,
       "acceptedStatuses": [
         200
@@ -1322,8 +1422,8 @@
       "body": {
         "success": false,
         "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+          "code": "INTERNAL_ERROR",
+          "message": "Internal Server Error"
         }
       }
     },
@@ -1331,16 +1431,51 @@
       "name": "Dashboard Sales Overview",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/overview",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 1439,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "total_revenue": 264900000,
+          "total_tickets": 6978,
+          "avg_ticket_price": 37962.17,
+          "revenue_per_seat": 7358.33,
+          "avg_occupancy": 19.38,
+          "growth": {
+            "tickets": -1.18,
+            "revenue": -1.53,
+            "avg_occupancy": -1.17
+          }
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_overview"
         }
       }
     },
@@ -1348,7 +1483,8 @@
       "name": "Dashboard Sales Revenue by Cinema",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/revenue-by-cinema",
-      "statusCode": 401,
+      "statusCode": 500,
+      "duration_ms": 1921,
       "ok": false,
       "acceptedStatuses": [
         200
@@ -1356,8 +1492,8 @@
       "body": {
         "success": false,
         "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+          "code": "INTERNAL_ERROR",
+          "message": "Internal Server Error"
         }
       }
     },
@@ -1365,33 +1501,144 @@
       "name": "Dashboard Sales Revenue by Studio",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/revenue-by-studio",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 367,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
-      "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
-      }
+      "body": "{\"success\":true,\"data\":{\"summary\":{\"total_studios\":60,\"active_studios\":60,\"total_revenue\":281995000},\"top_performing_studio\":{\"rank\":1,\"studio_id\":\"ST-C010-1\",\"studio_name\":\"Studio 1\",\"cinema_id\":\"C010\",\"cinema_name\":\"Bandung Mall 10 XXI\",\"city\":\"Bandung\",\"total_shows\":15,\"total_tickets\":171,\"total_revenue\":6705000,\"avg_revenue_per_show\":447000,\"occupancy\":7.6},\"lowest_performing_studio\":{\"rank\":60,\"studio_id\":\"ST-C012-1\",\"studio_name\":\"Studio 1\",\"cinema_id\":\"C012\",\"cinema_name\":\"Jakarta Mall 12 XXI\",\"city\":\"Jakarta\",\"total_shows\":13,\"total_tickets\":99,\"total_revenue\":3840000,\"avg_revenue_per_show\":295384.62,\"occupancy\":5.08},\"breakdown\":[{\"rank\":1,\"studio_id\":\"ST-C010-1\",\"studio_name\":\"Studio 1\",\"cinema_id\":\"C010\",\"cinema_name\":\"Bandung Mall 10 XXI\",\"city\":\"Bandung\",\"total_shows\":15,\"total_tickets\":171,\"total_revenue\":6705000,\"avg_revenue_per_show\":447000,\"occupancy\":7.6},{\"rank\":2,\"studio_id\":\"ST-C014-2\",\"studio_name\":\"Studio 2\",\"cinema_id\":\"C014\",\"cinema_name\":\"Surabaya Mall 14 XXI\",\"city\":\"Surabaya\",\"total_shows\":14,\"total_tickets\":142,\"total_revenue\":5600000,\"avg_revenue_per_show\":400000,\"occupancy\":6.76},{\"rank\":3,\"studio_id\":\"ST-C008-1\",\"studio_name\":\"Studio 1\",\"cinema_id\":\"C008\",\"cinema_name\":\"Jakarta Mall 8 XXI\",\"city\":\"Jakarta\",\"total_shows\":15,\"total_tickets\":141,\"total_revenue\":5565000,\"avg_revenue_per_show\":371000,\"occupancy\":6.27},{\"rank\":4,\"studio_id\":\"ST-C004-2\",\"studio_name\":\"Studio 2\",\"cinema_id\":\"C004\",\"cinema_name\":\"Semarang Mall 4 XXI\",\"city\":\"Semarang\",\"total_shows\":15,\"total_tickets\":143,\"total_revenue\":5560000,\"avg_revenue_per_show\":370666.67,\"occupancy\":6.36},{\"rank\":5,\"studio_id\":\"ST-C016-2\",\"studio_name\":\"Studio 2\",\"cinema_id\":\"C016\",\"cinema_name\":\"Jakarta Mall 16 XXI\",\"city\":\"Jakarta\",\"total_shows\":14,\"total_tickets\":145,\"total_revenue\":5540000,\"avg_revenue_per_show\":395714.29,\"occupancy\":6.9},{\"rank\":6,\"studio_id\":\"ST-C015-2\",\"studio_name\":\"Studio 2\",\"cinema_id\":\"C015\",\"cinema_name\":\"Bandung Mall 15 XXI\",\"city\":\"Bandung\",\"total_shows\":15,\"total_tickets\":138,\"total_revenue\":5445000,\"avg_revenue_per_show\":363000,\"occupancy\":6.13},{\"rank\":7,\"studio_id\":\"ST-C001-3\",\"studio_name\":\"Studio 3\",\"cinema_id\":\"C001\",\"cinema_name\":\"Semarang Mall 1 XXI\",\"city\":\"Semarang\",\"total_shows\":15,\"total_tickets\":142,\"total_revenue\":5435000,\"avg_revenue_per_show\":362333.33,\"occupancy\":6.31},{\"rank\":8,\"studio_id\":\"ST-C002-1\",\"studio_name\":\"Studio 1\",\"cinema_id\":\"C002\",\"cinema_name\":\"Bandung Mall 2 XXI\",\"city\":\"Bandung\",\"total_shows\":14,\"total_tickets\":141,\"total_revenue\":5430000,\"avg_revenue_per_show\":387857.14,\"occupancy\":6.71},{\"rank\":9,\"studio_id\":\"ST-C010-3\",\"studio_name\":\"Studio 3\",\"cinema_id\":\"C010\",\"cinema_name\":\"Bandung Mall 10 XXI\",\"city\":\"Bandung\",\"total_shows\":15,\"total_tickets\":141,\"total_revenue\":5430000,\"avg_revenue_per_show\":362000,\"occupancy\":6.27},{\"rank\":10,\"studio_id\":\"ST-C015-3\",\"studio_name\":\"Studio 3\",\"cinema_id\":\"C015\",\"cinema_name\":\"Bandung Mall 15 XXI\",\"city\":\"Bandung\",\"total_shows\":14,\"total_tickets\":142,\"total_reven... [truncated]"
     },
     {
       "name": "Dashboard Sales Revenue by Movie",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/revenue-by-movie",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 454,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "total_movies": 12,
+          "top_movie": {
+            "rank": 1,
+            "movie_id": "M008",
+            "title": "Vina: Sebelum 7 Hari",
+            "total_revenue": 56085000,
+            "total_tickets": 1458,
+            "contribution": 19.89
+          },
+          "breakdown": [
+            {
+              "rank": 1,
+              "movie_id": "M008",
+              "title": "Vina: Sebelum 7 Hari",
+              "total_revenue": 56085000,
+              "total_tickets": 1458,
+              "contribution": 19.89
+            },
+            {
+              "rank": 2,
+              "movie_id": "M005",
+              "title": "Siksa Kubur",
+              "total_revenue": 48290000,
+              "total_tickets": 1258,
+              "contribution": 17.12
+            },
+            {
+              "rank": 3,
+              "movie_id": "M012",
+              "title": "Moana 2",
+              "total_revenue": 40180000,
+              "total_tickets": 1037,
+              "contribution": 14.25
+            },
+            {
+              "rank": 4,
+              "movie_id": "M011",
+              "title": "Gladiator II",
+              "total_revenue": 35885000,
+              "total_tickets": 928,
+              "contribution": 12.73
+            },
+            {
+              "rank": 5,
+              "movie_id": "M010",
+              "title": "Joker 2",
+              "total_revenue": 26810000,
+              "total_tickets": 673,
+              "contribution": 9.51
+            },
+            {
+              "rank": 6,
+              "movie_id": "M009",
+              "title": "Kung Fu Panda 4",
+              "total_revenue": 24765000,
+              "total_tickets": 636,
+              "contribution": 8.78
+            },
+            {
+              "rank": 7,
+              "movie_id": "M007",
+              "title": "Ipar Adalah Maut",
+              "total_revenue": 18825000,
+              "total_tickets": 495,
+              "contribution": 6.68
+            },
+            {
+              "rank": 8,
+              "movie_id": "M002",
+              "title": "Kkn di Desa Penari 2",
+              "total_revenue": 15910000,
+              "total_tickets": 416,
+              "contribution": 5.64
+            },
+            {
+              "rank": 9,
+              "movie_id": "M006",
+              "title": "Dilan 1991",
+              "total_revenue": 14135000,
+              "total_tickets": 370,
+              "contribution": 5.01
+            },
+            {
+              "rank": 10,
+              "movie_id": "M001",
+              "title": "Avengers: Doomsday",
+              "total_revenue": 645000,
+              "total_tickets": 18,
+              "contribution": 0.23
+            }
+          ]
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_revenue_by_movie"
         }
       }
     },
@@ -1399,16 +1646,95 @@
       "name": "Dashboard Sales Time Slots",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/time-slots",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 217,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "peak_sales_hour": {
+            "time_slot": "18:00",
+            "revenue": 83265000,
+            "demand": 2190,
+            "occupancy": 24.33,
+            "recommendation": "Demand is strong, evaluate pricing and studio allocation to improve monetization."
+          },
+          "quiet_hour": {
+            "time_slot": "12:00",
+            "revenue": 50365000,
+            "demand": 1334
+          },
+          "breakdown": [
+            {
+              "time_slot": "12:00",
+              "revenue": 50365000,
+              "demand": 1334,
+              "occupancy": 14.82,
+              "normalized_demand": 0,
+              "normalized_revenue": 0,
+              "optimization_score": 0,
+              "recommendation": "This slot is usually quiet; consider promotions or reducing show frequency."
+            },
+            {
+              "time_slot": "15:00",
+              "revenue": 51405000,
+              "demand": 1353,
+              "occupancy": 15.03,
+              "normalized_demand": 0.02,
+              "normalized_revenue": 0.03,
+              "optimization_score": 0.03,
+              "recommendation": "This slot is usually quiet; consider promotions or reducing show frequency."
+            },
+            {
+              "time_slot": "18:00",
+              "revenue": 83265000,
+              "demand": 2190,
+              "occupancy": 24.33,
+              "normalized_demand": 1,
+              "normalized_revenue": 1,
+              "optimization_score": 1,
+              "recommendation": "Demand is strong, evaluate pricing and studio allocation to improve monetization."
+            },
+            {
+              "time_slot": "21:00",
+              "revenue": 79865000,
+              "demand": 2101,
+              "occupancy": 23.34,
+              "normalized_demand": 0.9,
+              "normalized_revenue": 0.9,
+              "optimization_score": 0.9,
+              "recommendation": "Demand is strong, evaluate pricing and studio allocation to improve monetization."
+            }
+          ]
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_time_slots"
         }
       }
     },
@@ -1416,16 +1742,75 @@
       "name": "Dashboard Sales Trend",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/trend",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 833,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "group_by": "daily",
+            "date_axis": "show_date",
+            "total_revenue": 264915344,
+            "total_tickets": 6978
+          },
+          "forecast": {
+            "group_by": "daily",
+            "next_period": "2026-04-15",
+            "projected_revenue": 264915344,
+            "is_mock_forecast": true
+          },
+          "yearly_breakdown": [
+            {
+              "month": "Feb",
+              "revenue": 7491413504
+            },
+            {
+              "month": "Mar",
+              "revenue": 14696805376
+            },
+            {
+              "month": "Apr",
+              "revenue": 6619154432
+            }
+          ],
+          "breakdown": [
+            {
+              "time_group": "2026-04-14",
+              "total_tickets": 6978,
+              "revenue": 264915344,
+              "moving_average": 264915344
+            }
+          ]
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_trend"
         }
       }
     },
@@ -1433,16 +1818,66 @@
       "name": "Dashboard Sales Weekend vs Weekday",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/weekend-vs-weekday",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 219,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "winning_period": "weekday",
+            "revenue_gap": 264900000,
+            "ticket_gap": 6978
+          },
+          "breakdown": [
+            {
+              "day_type": "weekday",
+              "total_shows": 240,
+              "total_tickets": 6978,
+              "total_revenue": 264900000,
+              "avg_revenue_per_show": 1103750,
+              "avg_tickets_per_show": 29.07,
+              "occupancy": 19.38
+            },
+            {
+              "day_type": "weekend",
+              "total_shows": 0,
+              "total_tickets": 0,
+              "total_revenue": 0,
+              "avg_revenue_per_show": 0,
+              "avg_tickets_per_show": 0,
+              "occupancy": 0
+            }
+          ]
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_weekend_vs_weekday"
         }
       }
     },
@@ -1450,16 +1885,92 @@
       "name": "Dashboard Sales Payment",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/payment",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 215,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "total_transactions": 6978,
+          "preferred_payment": {
+            "payment_type": "QRIS",
+            "total_transactions": 2344,
+            "usage_rate": 33.59,
+            "gross_revenue": 88880000,
+            "avg_price": 37918.09,
+            "admin_fee": 1000,
+            "success_rate": 100,
+            "failure_rate": 0,
+            "net_profitability": 86536000,
+            "is_mock_config": true
+          },
+          "breakdown": [
+            {
+              "payment_type": "QRIS",
+              "total_transactions": 2344,
+              "usage_rate": 33.59,
+              "gross_revenue": 88880000,
+              "avg_price": 37918.09,
+              "admin_fee": 1000,
+              "success_rate": 100,
+              "failure_rate": 0,
+              "net_profitability": 86536000,
+              "is_mock_config": true
+            },
+            {
+              "payment_type": "CASH",
+              "total_transactions": 2333,
+              "usage_rate": 33.43,
+              "gross_revenue": 88645000,
+              "avg_price": 37996.14,
+              "admin_fee": 0,
+              "success_rate": 100,
+              "failure_rate": 0,
+              "net_profitability": 88645000,
+              "is_mock_config": true
+            },
+            {
+              "payment_type": "DEBIT",
+              "total_transactions": 2301,
+              "usage_rate": 32.98,
+              "gross_revenue": 87375000,
+              "avg_price": 37972.62,
+              "admin_fee": 1000,
+              "success_rate": 100,
+              "failure_rate": 0,
+              "net_profitability": 85074000,
+              "is_mock_config": true
+            }
+          ]
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_payment"
         }
       }
     },
@@ -1467,16 +1978,50 @@
       "name": "Dashboard Sales Operational Risk",
       "method": "GET",
       "url": "/api/v1/dashboard/sales/operational-risk",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 214,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "total_shows": 240,
+            "cancelled": 0,
+            "delayed": 0,
+            "avg_delay_minutes": null,
+            "problematic_rate": 0,
+            "is_mock_delay": true
+          },
+          "problematic_schedules": []
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "sales_operational_risk"
         }
       }
     },
@@ -1484,7 +2029,8 @@
       "name": "Dashboard Films Overview",
       "method": "GET",
       "url": "/api/v1/dashboard/films/overview",
-      "statusCode": 401,
+      "statusCode": 500,
+      "duration_ms": 1225,
       "ok": false,
       "acceptedStatuses": [
         200
@@ -1492,8 +2038,8 @@
       "body": {
         "success": false,
         "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+          "code": "INTERNAL_ERROR",
+          "message": "Internal Server Error"
         }
       }
     },
@@ -1501,67 +2047,146 @@
       "name": "Dashboard Films Performance",
       "method": "GET",
       "url": "/api/v1/dashboard/films/performance",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 357,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
-      "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
-      }
+      "body": "{\"success\":true,\"data\":{\"top_movie\":{\"rank\":1,\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"total_tickets\":1458,\"total_revenue\":56085000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":20,\"share_of_revenue\":19.92,\"blockbuster_score\":1},\"breakdown\":[{\"rank\":1,\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"total_tickets\":1458,\"total_revenue\":56085000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":20,\"share_of_revenue\":19.92,\"blockbuster_score\":1},{\"rank\":2,\"movie_id\":\"M005\",\"title\":\"Siksa Kubur\",\"total_tickets\":1258,\"total_revenue\":48290000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":17.26,\"share_of_revenue\":17.15,\"blockbuster_score\":0.86},{\"rank\":3,\"movie_id\":\"M012\",\"title\":\"Moana 2\",\"total_tickets\":1037,\"total_revenue\":40180000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":14.23,\"share_of_revenue\":14.27,\"blockbuster_score\":0.71},{\"rank\":4,\"movie_id\":\"M011\",\"title\":\"Gladiator II\",\"total_tickets\":928,\"total_revenue\":35885000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":12.73,\"share_of_revenue\":12.75,\"blockbuster_score\":0.64},{\"rank\":5,\"movie_id\":\"M010\",\"title\":\"Joker 2\",\"total_tickets\":673,\"total_revenue\":26810000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":9.23,\"share_of_revenue\":9.52,\"blockbuster_score\":0.47},{\"rank\":6,\"movie_id\":\"M009\",\"title\":\"Kung Fu Panda 4\",\"total_tickets\":636,\"total_revenue\":24765000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":8.73,\"share_of_revenue\":8.8,\"blockbuster_score\":0.44},{\"rank\":7,\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"total_tickets\":495,\"total_revenue\":18825000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":6.79,\"share_of_revenue\":6.69,\"blockbuster_score\":0.34},{\"rank\":8,\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"total_tickets\":416,\"total_revenue\":15910000,\"genre\":\"Unknown\",\"genres\":[],\"rating\":\"SU\",\"rating_usia\":\"SU\",\"duration\":0,\"duration_min\":0,\"seat_distribution\":{\"Regular\":0,\"VIP\":0,\"Sweetbox\":0},\"share_of_tickets\":5.71,\"share_of_revenue\":5.65,\"blockbuster_score\":0.28},{\"rank\":9,\"movie_id\":\"M006\",\"title\":\"Dilan 1991\",\"total_tickets\":370... [truncated]"
     },
     {
       "name": "Dashboard Films Schedules",
       "method": "GET",
       "url": "/api/v1/dashboard/films/schedules",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 414,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
-      "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
-      }
+      "body": "{\"success\":true,\"data\":{\"schedule_performance\":[{\"schedule_id\":\"S014380\",\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C019-1\",\"cinema_id\":\"C019\",\"total_tickets\":54,\"revenue\":2025000,\"occupancy\":36},{\"schedule_id\":\"S014336\",\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C015-2\",\"cinema_id\":\"C015\",\"total_tickets\":37,\"revenue\":1370000,\"occupancy\":24.67},{\"schedule_id\":\"S014196\",\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C003-3\",\"cinema_id\":\"C003\",\"total_tickets\":22,\"revenue\":890000,\"occupancy\":14.67},{\"schedule_id\":\"S014372\",\"movie_id\":\"M005\",\"title\":\"Siksa Kubur\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C018-2\",\"cinema_id\":\"C018\",\"total_tickets\":31,\"revenue\":1190000,\"occupancy\":20.67},{\"schedule_id\":\"S014268\",\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C009-3\",\"cinema_id\":\"C009\",\"total_tickets\":57,\"revenue\":2160000,\"occupancy\":38},{\"schedule_id\":\"S014200\",\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C004-1\",\"cinema_id\":\"C004\",\"total_tickets\":18,\"revenue\":630000,\"occupancy\":12},{\"schedule_id\":\"S014360\",\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C017-2\",\"cinema_id\":\"C017\",\"total_tickets\":41,\"revenue\":1495000,\"occupancy\":27.33},{\"schedule_id\":\"S014232\",\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C006-3\",\"cinema_id\":\"C006\",\"total_tickets\":37,\"revenue\":1340000,\"occupancy\":24.67},{\"schedule_id\":\"S014388\",\"movie_id\":\"M006\",\"title\":\"Dilan 1991\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C019-3\",\"cinema_id\":\"C019\",\"total_tickets\":18,\"revenue\":660000,\"occupancy\":12},{\"schedule_id\":\"S014292\",\"movie_id\":\"M006\",\"title\":\"Dilan 1991\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C011-3\",\"cinema_id\":\"C011\",\"total_tickets\":36,\"revenue\":1365000,\"occupancy\":24},{\"schedule_id\":\"S014184\",\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C002-3\",\"cinema_id\":\"C002\",\"total_tickets\":18,\"revenue\":645000,\"occupancy\":12},{\"schedule_id\":\"S014364\",\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C017-3\",\"cinema_id\":\"C017\",\"total_tickets\":41,\"revenue\":1540000,\"occupancy\":27.33},{\"schedule_id\":\"S014256\",\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C008-3\",\"cinema_id\":\"C008\",\"total_tickets\":26,\"revenue\":1045000,\"occupancy\":17.33},{\"schedule_id\":\"S014208\",\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"show_date\":\"2026-04-14\",\"start_time\":\"21:00\",\"studio_id\":\"ST-C004-3\",\"cinema_id\":\"C004\",\"total_ticket... [truncated]"
     },
     {
       "name": "Dashboard Films Occupancy",
       "method": "GET",
       "url": "/api/v1/dashboard/films/occupancy",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 1404,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
-      "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
-      }
+      "body": "{\"success\":true,\"data\":{\"overall\":{\"group_by\":\"daily\",\"total_tickets\":6978,\"total_capacity\":36000,\"occupancy\":19.38},\"by_movie\":[{\"movie_id\":\"M005\",\"title\":\"Siksa Kubur\",\"total_tickets\":1576,\"total_capacity\":8400,\"occupancy\":18.76,\"capacity_fit\":18.76,\"underperforming_score\":0.97,\"status\":\"good\"},{\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"total_tickets\":1501,\"total_capacity\":8400,\"occupancy\":17.87,\"capacity_fit\":17.87,\"underperforming_score\":0.92,\"status\":\"good\"},{\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"total_tickets\":1437,\"total_capacity\":7200,\"occupancy\":19.96,\"capacity_fit\":19.96,\"underperforming_score\":1.03,\"status\":\"good\"},{\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"total_tickets\":1363,\"total_capacity\":6600,\"occupancy\":20.65,\"capacity_fit\":20.65,\"underperforming_score\":1.07,\"status\":\"good\"},{\"movie_id\":\"M006\",\"title\":\"Dilan 1991\",\"total_tickets\":1101,\"total_capacity\":5400,\"occupancy\":20.39,\"capacity_fit\":20.39,\"underperforming_score\":1.05,\"status\":\"good\"}],\"by_day\":[{\"show_date\":\"2026-04-14\",\"total_tickets\":6978,\"total_capacity\":36000,\"occupancy\":19.38}],\"by_studio\":[{\"studio_id\":\"ST-C014-2\",\"studio_name\":\"Studio 2\",\"total_tickets\":160,\"total_capacity\":600,\"occupancy\":26.67},{\"studio_id\":\"ST-C010-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":160,\"total_capacity\":600,\"occupancy\":26.67},{\"studio_id\":\"ST-C007-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":159,\"total_capacity\":600,\"occupancy\":26.5},{\"studio_id\":\"ST-C015-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":159,\"total_capacity\":600,\"occupancy\":26.5},{\"studio_id\":\"ST-C010-1\",\"studio_name\":\"Studio 1\",\"total_tickets\":146,\"total_capacity\":600,\"occupancy\":24.33},{\"studio_id\":\"ST-C009-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":146,\"total_capacity\":600,\"occupancy\":24.33},{\"studio_id\":\"ST-C016-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":146,\"total_capacity\":600,\"occupancy\":24.33},{\"studio_id\":\"ST-C006-2\",\"studio_name\":\"Studio 2\",\"total_tickets\":138,\"total_capacity\":600,\"occupancy\":23},{\"studio_id\":\"ST-C016-2\",\"studio_name\":\"Studio 2\",\"total_tickets\":136,\"total_capacity\":600,\"occupancy\":22.67},{\"studio_id\":\"ST-C014-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":136,\"total_capacity\":600,\"occupancy\":22.67},{\"studio_id\":\"ST-C012-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":135,\"total_capacity\":600,\"occupancy\":22.5},{\"studio_id\":\"ST-C019-1\",\"studio_name\":\"Studio 1\",\"total_tickets\":134,\"total_capacity\":600,\"occupancy\":22.33},{\"studio_id\":\"ST-C011-1\",\"studio_name\":\"Studio 1\",\"total_tickets\":131,\"total_capacity\":600,\"occupancy\":21.83},{\"studio_id\":\"ST-C017-2\",\"studio_name\":\"Studio 2\",\"total_tickets\":127,\"total_capacity\":600,\"occupancy\":21.17},{\"studio_id\":\"ST-C011-2\",\"studio_name\":\"Studio 2\",\"total_tickets\":126,\"total_capacity\":600,\"occupancy\":21},{\"studio_id\":\"ST-C008-3\",\"studio_name\":\"Studio 3\",\"total_tickets\":126,\"total_capacity\":600,\"occupancy\":21},{\"studio_id\":\"ST-C018-2\",\"studio_name\":\"Studio 2\",\"total_tickets\":125,\"total_capacity\":600,\"occupancy\":20.83},{\"studio_id\":\"ST-C007-1\",\"studio... [truncated]"
     },
     {
       "name": "Dashboard Films Distribution",
       "method": "GET",
       "url": "/api/v1/dashboard/films/distribution",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 3585,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "genre_popularity": {
+            "summary": {
+              "total_movies_showing": 12,
+              "total_tickets_sold": 912741,
+              "top_movie": {
+                "movie_id": "M003",
+                "title": "Agak Laen",
+                "tickets_sold": 109197
+              },
+              "top_genre": {
+                "genre": "Horror",
+                "tickets_sold": 252737
+              }
+            },
+            "breakdown": [
+              {
+                "genre": "Horror",
+                "total_tickets": 4376
+              },
+              {
+                "genre": "Drama",
+                "total_tickets": 1501
+              },
+              {
+                "genre": "Romance",
+                "total_tickets": 1101
+              }
+            ],
+            "breakdown_rating_usia": [
+              {
+                "rating_usia": "D17",
+                "total_tickets_sold": 54166,
+                "total_showings": 1244,
+                "seat_distribution": {
+                  "Regular": 43414,
+                  "VIP": 0,
+                  "Sweetbox": 10752
+                }
+              },
+              {
+                "rating_usia": "R13",
+                "total_tickets_sold": 503918,
+                "total_showings": 11880,
+                "seat_distribution": {
+                  "Regular": 403346,
+                  "VIP": 0,
+                  "Sweetbox": 100572
+                }
+              },
+              {
+                "rating_usia": "SU",
+                "total_tickets_sold": 354657,
+                "total_showings": 8476,
+                "seat_distribution": {
+                  "Regular": 283926,
+                  "VIP": 0,
+                  "Sweetbox": 70731
+                }
+              }
+            ]
+          },
+          "studio_format_distribution": [
+            {
+              "format": "2",
+              "type": "2",
+              "total_studios": 60,
+              "total_schedules": 240
+            }
+          ]
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "films_distribution"
         }
       }
     },
@@ -1569,16 +2194,51 @@
       "name": "Dashboard Films Operational Risk",
       "method": "GET",
       "url": "/api/v1/dashboard/films/operational-risk",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 215,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "total_shows": 240,
+            "cancelled": 0,
+            "delayed": 0,
+            "avg_delay_minutes": null,
+            "problematic_rate": 0,
+            "is_mock_delay": true
+          },
+          "impacted_movies": [],
+          "problematic_schedules": []
+        },
+        "meta": {
+          "filters": {},
+          "analytics_context": {
+            "currency": "IDR",
+            "locale": "id-ID",
+            "date_range": {
+              "start": "2026-04-14",
+              "end": "2026-04-14",
+              "days_inclusive": 1
+            },
+            "units": {
+              "revenue": "IDR",
+              "tickets": "count",
+              "transactions": "count",
+              "occupancy": "percent",
+              "contribution": "percent",
+              "blockbuster_score": "normalized_0_1",
+              "optimization_score": "normalized_0_1"
+            },
+            "hints": {
+              "occupancy_interpretation": "Persentase tiket terjual terhadap total kapasitas kursi pada jadwal dalam filter (seat-shows).",
+              "contribution_interpretation": "Pangsa pendapatan film atau bioskop terhadap total pendapatan periode yang sama."
+            }
+          },
+          "section": "films_operational_risk"
         }
       }
     },
@@ -1587,6 +2247,7 @@
       "method": "GET",
       "url": "/api/v1/notifications?limit=5",
       "statusCode": 200,
+      "duration_ms": 7526,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1599,8 +2260,8 @@
             "title": "Backend health",
             "message": "Backend is active and responding normally.",
             "severity": "success",
-            "status": "unread",
-            "created_at": "2026-04-14T14:14:26.378Z",
+            "status": "read",
+            "created_at": "2026-04-14T16:16:10.803Z",
             "context": {
               "status": "active",
               "last_data_in": "2026-05-14T12:00:00.000Z",
@@ -1612,8 +2273,8 @@
             "title": "Revenue trend",
             "message": "Revenue is below the previous comparison window.",
             "severity": "info",
-            "status": "unread",
-            "created_at": "2026-04-14T14:14:26.378Z",
+            "status": "read",
+            "created_at": "2026-04-14T16:16:10.803Z",
             "context": {
               "growth": -1.53
             }
@@ -1623,8 +2284,8 @@
             "title": "Occupancy level",
             "message": "Overall occupancy is low and may need attention.",
             "severity": "warning",
-            "status": "unread",
-            "created_at": "2026-04-14T14:14:26.378Z",
+            "status": "read",
+            "created_at": "2026-04-14T16:16:10.803Z",
             "context": {
               "occupancy": 19.38
             }
@@ -1634,8 +2295,8 @@
             "title": "Cinema activity",
             "message": "20 of 20 cinemas are active.",
             "severity": "success",
-            "status": "unread",
-            "created_at": "2026-04-14T14:14:26.378Z",
+            "status": "read",
+            "created_at": "2026-04-14T16:16:10.803Z",
             "context": {
               "total_cinemas": 20,
               "active_cinemas": 20,
@@ -1663,16 +2324,75 @@
       "name": "Dashboard Notifications",
       "method": "GET",
       "url": "/api/v1/dashboard/notifications?limit=5",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 7399,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": [
+          {
+            "type": "system-health",
+            "severity": "success",
+            "title": "Backend health",
+            "what_happened": "Backend is active and responding normally.",
+            "where": "Global",
+            "impact_size": 45,
+            "recommended_action": "Check backend connectivity, database health, and data synchronization.",
+            "created_at": "2026-04-14T16:16:18.179Z",
+            "status": "read",
+            "resolved": true
+          },
+          {
+            "type": "revenue-growth",
+            "severity": "info",
+            "title": "Revenue trend",
+            "what_happened": "Revenue is below the previous comparison window.",
+            "where": "Global",
+            "impact_size": -1.53,
+            "recommended_action": "Review promos, movie lineup, and branches with revenue declines.",
+            "created_at": "2026-04-14T16:16:18.179Z",
+            "status": "read",
+            "resolved": true
+          },
+          {
+            "type": "occupancy-level",
+            "severity": "warning",
+            "title": "Occupancy level",
+            "what_happened": "Overall occupancy is low and may need attention.",
+            "where": "Global",
+            "impact_size": 19.38,
+            "recommended_action": "Consider studio relayout or reduce low-demand showtimes.",
+            "created_at": "2026-04-14T16:16:18.179Z",
+            "status": "read",
+            "resolved": true
+          },
+          {
+            "type": "cinema-activity",
+            "severity": "success",
+            "title": "Cinema activity",
+            "what_happened": "20 of 20 cinemas are active.",
+            "where": "Global",
+            "impact_size": 20,
+            "recommended_action": "Validate whether inactive branches are offline, under maintenance, or idle.",
+            "created_at": "2026-04-14T16:16:18.179Z",
+            "status": "read",
+            "resolved": true
+          }
+        ],
+        "meta": {
+          "filters": {
+            "status": "all",
+            "severity": null
+          },
+          "pagination": {
+            "page": 1,
+            "limit": 5,
+            "total": 4,
+            "total_pages": 1
+          }
         }
       }
     },
@@ -1681,6 +2401,7 @@
       "method": "GET",
       "url": "/api/v1/alerts/summary",
       "statusCode": 200,
+      "duration_ms": 7842,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1691,7 +2412,7 @@
           "critical": 0,
           "warning": 1,
           "info": 1,
-          "unread": 4
+          "unread": 0
         }
       }
     },
@@ -1699,34 +2420,81 @@
       "name": "Payments Config",
       "method": "GET",
       "url": "/api/v1/payments/config",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 280,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
+        "success": true,
+        "data": [
+          {
+            "payment_type": "CASH",
+            "admin_fee": 0,
+            "success_rate": 100,
+            "failure_rate": 0,
+            "is_mock_config": true
+          },
+          {
+            "payment_type": "DEBIT",
+            "admin_fee": 1000,
+            "success_rate": 100,
+            "failure_rate": 0,
+            "is_mock_config": true
+          },
+          {
+            "payment_type": "QRIS",
+            "admin_fee": 1000,
+            "success_rate": 100,
+            "failure_rate": 0,
+            "is_mock_config": true
+          }
+        ]
       }
     },
     {
       "name": "Cities",
       "method": "GET",
       "url": "/api/v1/cities",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 210,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
+        "success": true,
+        "data": [
+          {
+            "city": "Bandung",
+            "total_cinemas": 8,
+            "lat": null,
+            "lng": null,
+            "is_mock_location": true
+          },
+          {
+            "city": "Jakarta",
+            "total_cinemas": 5,
+            "lat": null,
+            "lng": null,
+            "is_mock_location": true
+          },
+          {
+            "city": "Semarang",
+            "total_cinemas": 4,
+            "lat": null,
+            "lng": null,
+            "is_mock_location": true
+          },
+          {
+            "city": "Surabaya",
+            "total_cinemas": 3,
+            "lat": null,
+            "lng": null,
+            "is_mock_location": true
+          }
+        ]
       }
     },
     {
@@ -1734,6 +2502,7 @@
       "method": "GET",
       "url": "/api/v1/system/health",
       "statusCode": 200,
+      "duration_ms": 1231,
       "ok": true,
       "acceptedStatuses": [
         200,
@@ -1746,6 +2515,7 @@
       "method": "GET",
       "url": "/api/v1/system/status",
       "statusCode": 200,
+      "duration_ms": 7468,
       "ok": true,
       "acceptedStatuses": [
         200,
@@ -1757,16 +2527,85 @@
       "name": "Analytics Pricing Recommendation",
       "method": "GET",
       "url": "/api/v1/analytics/pricing-recommendation",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 220,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "total_slots_analyzed": 4,
+            "recommended_changes": 4,
+            "peak_sales_hour": {
+              "time_slot": "18:00",
+              "revenue": 83265000,
+              "demand": 2190,
+              "occupancy": 24.33,
+              "recommendation": "Demand is strong, evaluate pricing and studio allocation to improve monetization."
+            },
+            "quiet_hour": {
+              "time_slot": "12:00",
+              "revenue": 50365000,
+              "demand": 1334
+            },
+            "is_rule_based": true
+          },
+          "recommendations": [
+            {
+              "time_slot": "12:00",
+              "demand": 1334,
+              "revenue": 50365000,
+              "occupancy": 14.82,
+              "optimization_score": 0,
+              "suggested_action": "discount_or_reduce_slot",
+              "suggested_price_change_pct": -10,
+              "reason": "Occupancy is low, so promotions or reduced frequency may be more effective.",
+              "confidence": 0.8,
+              "is_rule_based": true
+            },
+            {
+              "time_slot": "15:00",
+              "demand": 1353,
+              "revenue": 51405000,
+              "occupancy": 15.03,
+              "optimization_score": 0.03,
+              "suggested_action": "discount_or_reduce_slot",
+              "suggested_price_change_pct": -10,
+              "reason": "Occupancy is low, so promotions or reduced frequency may be more effective.",
+              "confidence": 0.8,
+              "is_rule_based": true
+            },
+            {
+              "time_slot": "18:00",
+              "demand": 2190,
+              "revenue": 83265000,
+              "occupancy": 24.33,
+              "optimization_score": 1,
+              "suggested_action": "discount_or_reduce_slot",
+              "suggested_price_change_pct": -10,
+              "reason": "Occupancy is low, so promotions or reduced frequency may be more effective.",
+              "confidence": 0.8,
+              "is_rule_based": true
+            },
+            {
+              "time_slot": "21:00",
+              "demand": 2101,
+              "revenue": 79865000,
+              "occupancy": 23.34,
+              "optimization_score": 0.9,
+              "suggested_action": "discount_or_reduce_slot",
+              "suggested_price_change_pct": -10,
+              "reason": "Occupancy is low, so promotions or reduced frequency may be more effective.",
+              "confidence": 0.8,
+              "is_rule_based": true
+            }
+          ]
+        },
+        "meta": {
+          "filters": {}
         }
       }
     },
@@ -1774,33 +2613,94 @@
       "name": "Analytics Best Ad Slot",
       "method": "GET",
       "url": "/api/v1/analytics/best-ad-slot",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 222,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
-      "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
-        }
-      }
+      "body": "{\"success\":true,\"data\":{\"summary\":{\"total_candidates\":20,\"top_slot\":{\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"genre\":[\"Horror\"],\"time_slot\":\"21:00\",\"total_shows\":11,\"audience_size\":487,\"total_revenue\":18590000,\"revenue_per_show\":1690000,\"occupancy\":29.52,\"ad_score\":99.1,\"is_rule_based\":true,\"is_proxy_metric\":true},\"scoring_formula\":\"0.5*audience + 0.3*revenue + 0.2*occupancy\",\"is_proxy_metric\":true},\"breakdown\":[{\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"genre\":[\"Horror\"],\"time_slot\":\"21:00\",\"total_shows\":11,\"audience_size\":487,\"total_revenue\":18590000,\"revenue_per_show\":1690000,\"occupancy\":29.52,\"ad_score\":99.1,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"genre\":[\"Drama\"],\"time_slot\":\"18:00\",\"total_shows\":14,\"audience_size\":492,\"total_revenue\":18570000,\"revenue_per_show\":1326428.57,\"occupancy\":23.43,\"ad_score\":92.18,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"genre\":[\"Horror\"],\"time_slot\":\"18:00\",\"total_shows\":12,\"audience_size\":460,\"total_revenue\":17495000,\"revenue_per_show\":1457916.67,\"occupancy\":25.56,\"ad_score\":85.99,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M005\",\"title\":\"Siksa Kubur\",\"genre\":[\"Horror\"],\"time_slot\":\"21:00\",\"total_shows\":14,\"audience_size\":467,\"total_revenue\":17890000,\"revenue_per_show\":1277857.14,\"occupancy\":22.24,\"ad_score\":84.18,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M005\",\"title\":\"Siksa Kubur\",\"genre\":[\"Horror\"],\"time_slot\":\"18:00\",\"total_shows\":14,\"audience_size\":467,\"total_revenue\":17815000,\"revenue_per_show\":1272500,\"occupancy\":22.24,\"ad_score\":83.96,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M002\",\"title\":\"Kkn di Desa Penari 2\",\"genre\":[\"Horror\"],\"time_slot\":\"18:00\",\"total_shows\":11,\"audience_size\":417,\"total_revenue\":15945000,\"revenue_per_show\":1449545.45,\"occupancy\":25.27,\"ad_score\":73.36,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M008\",\"title\":\"Vina: Sebelum 7 Hari\",\"genre\":[\"Horror\"],\"time_slot\":\"21:00\",\"total_shows\":12,\"audience_size\":413,\"total_revenue\":15550000,\"revenue_per_show\":1295833.33,\"occupancy\":22.94,\"ad_score\":68.52,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M007\",\"title\":\"Ipar Adalah Maut\",\"genre\":[\"Drama\"],\"time_slot\":\"21:00\",\"total_shows\":14,\"audience_size\":423,\"total_revenue\":15990000,\"revenue_per_show\":1142142.86,\"occupancy\":20.14,\"ad_score\":68.03,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M006\",\"title\":\"Dilan 1991\",\"genre\":[\"Romance\"],\"time_slot\":\"18:00\",\"total_shows\":9,\"audience_size\":354,\"total_revenue\":13440000,\"revenue_per_show\":1493333.33,\"occupancy\":26.22,\"ad_score\":55.91,\"is_rule_based\":true,\"is_proxy_metric\":true},{\"movie_id\":\"M006\",\"title\":\"Dilan 1991\",\"genre\":[\"Romance\"],\"time_slot\":\"21:00\",\"total_shows\":9,\"audience_size\":311,\"total_revenue\":11845000,\"revenue_per_show\":1316111.11,\"occupancy\":23.04,\"ad_score\":39.46,\"is_rule_based\":true,\"is_proxy_metric\":true}]},\"meta\":{\"filters\":... [truncated]"
     },
     {
       "name": "Analytics Early Blockbuster",
       "method": "GET",
       "url": "/api/v1/analytics/early-blockbuster",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 217,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "date_axis": "show_date",
+            "min_tickets": 100,
+            "min_growth": 25,
+            "detected_movies": 3,
+            "is_rule_based": true
+          },
+          "breakdown": [
+            {
+              "movie_id": "M007",
+              "title": "Ipar Adalah Maut",
+              "current_tickets": 1501,
+              "previous_tickets": 502,
+              "growth_rate": 199,
+              "total_revenue": 56915000,
+              "blockbuster_signal": true,
+              "suggested_action": "Add more shows and accelerate marketing support.",
+              "is_rule_based": true
+            },
+            {
+              "movie_id": "M002",
+              "title": "Kkn di Desa Penari 2",
+              "current_tickets": 1363,
+              "previous_tickets": 0,
+              "growth_rate": 100,
+              "total_revenue": 51995000,
+              "blockbuster_signal": true,
+              "suggested_action": "Add more shows and accelerate marketing support.",
+              "is_rule_based": true
+            },
+            {
+              "movie_id": "M005",
+              "title": "Siksa Kubur",
+              "current_tickets": 1576,
+              "previous_tickets": 907,
+              "growth_rate": 73.76,
+              "total_revenue": 59960000,
+              "blockbuster_signal": true,
+              "suggested_action": "Add more shows and accelerate marketing support.",
+              "is_rule_based": true
+            },
+            {
+              "movie_id": "M008",
+              "title": "Vina: Sebelum 7 Hari",
+              "current_tickets": 1437,
+              "previous_tickets": 1451,
+              "growth_rate": -0.96,
+              "total_revenue": 54180000,
+              "blockbuster_signal": false,
+              "suggested_action": "Monitor further before expanding slot allocation.",
+              "is_rule_based": true
+            },
+            {
+              "movie_id": "M006",
+              "title": "Dilan 1991",
+              "current_tickets": 1101,
+              "previous_tickets": 1363,
+              "growth_rate": -19.22,
+              "total_revenue": 41850000,
+              "blockbuster_signal": false,
+              "suggested_action": "Monitor further before expanding slot allocation.",
+              "is_rule_based": true
+            }
+          ]
+        },
+        "meta": {
+          "filters": {}
         }
       }
     },
@@ -1808,16 +2708,24 @@
       "name": "Analytics Cannibalization",
       "method": "GET",
       "url": "/api/v1/analytics/cannibalization",
-      "statusCode": 401,
-      "ok": false,
+      "statusCode": 200,
+      "duration_ms": 413,
+      "ok": true,
       "acceptedStatuses": [
         200
       ],
       "body": {
-        "success": false,
-        "error": {
-          "code": "UNAUTHORIZED",
-          "message": "Unauthorized"
+        "success": true,
+        "data": {
+          "summary": {
+            "total_slots_analyzed": 80,
+            "possible_cannibalization_cases": 0,
+            "is_rule_based": true
+          },
+          "breakdown": []
+        },
+        "meta": {
+          "filters": {}
         }
       }
     },
@@ -1826,6 +2734,7 @@
       "method": "GET",
       "url": "/api/v1/settings",
       "statusCode": 200,
+      "duration_ms": 624,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1843,6 +2752,7 @@
       "method": "PATCH",
       "url": "/api/v1/settings",
       "statusCode": 200,
+      "duration_ms": 1252,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1860,6 +2770,7 @@
       "method": "GET",
       "url": "/api/v1/notifications/system-health",
       "statusCode": 200,
+      "duration_ms": 6898,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1871,8 +2782,8 @@
           "title": "Backend health",
           "message": "Backend is active and responding normally.",
           "severity": "success",
-          "status": "unread",
-          "created_at": "2026-04-14T14:14:47.209Z",
+          "status": "read",
+          "created_at": "2026-04-14T16:16:45.082Z",
           "context": {
             "status": "active",
             "last_data_in": "2026-05-14T12:00:00.000Z",
@@ -1886,6 +2797,7 @@
       "method": "PATCH",
       "url": "/api/v1/notifications/system-health/read",
       "statusCode": 200,
+      "duration_ms": 16098,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1898,7 +2810,7 @@
           "message": "Backend is active and responding normally.",
           "severity": "success",
           "status": "read",
-          "created_at": "2026-04-14T14:15:01.114Z",
+          "created_at": "2026-04-14T16:17:01.177Z",
           "context": {
             "status": "active",
             "last_data_in": "2026-05-14T12:00:00.000Z",
@@ -1912,6 +2824,7 @@
       "method": "PATCH",
       "url": "/api/v1/notifications/read-all",
       "statusCode": 200,
+      "duration_ms": 8161,
       "ok": true,
       "acceptedStatuses": [
         200
@@ -1928,6 +2841,7 @@
       "method": "POST",
       "url": "/api/v1/auth/logout",
       "statusCode": 200,
+      "duration_ms": 1202,
       "ok": true,
       "acceptedStatuses": [
         200
