@@ -44,7 +44,6 @@ export const config = {
 const requiredEnv = [
   ["DATABASE_URL", config.databaseUrl],
   ["AUTH_SECRET", config.authSecret],
-  ["REDIS_URL", config.redisUrl],
   ["AI_API_KEY or OPENAI_API_KEY", config.aiApiKey],
   ["AI_BASE_URL or OPENAI_BASE_URL", config.aiBaseUrl]
 ];
