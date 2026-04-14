@@ -23,14 +23,14 @@ const resolvedCacheEnabled = requestedCacheEnabled
 export const config = {
   host: process.env.HOST || "0.0.0.0",
   port: Number(process.env.PORT || 8000),
-  databaseUrl: process.env.DATABASE_URL || "postgresql://postgres:ehjuzXxMsegHaLjXJTuAcBWXHlDNdDCt@gondola.proxy.rlwy.net:19300/railway",
+  databaseUrl: process.env.DATABASE_URL,
   authSecret: process.env.AUTH_SECRET || "cinetrack-dev-secret",
   redisUrl: resolvedRedisUrl,
   cacheEnabled: resolvedCacheEnabled,
   cacheTtlSeconds: Number(process.env.CACHE_TTL_SECONDS || 120),
   redisConnectTimeoutMs: Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 5000),
-  aiApiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NzYwMTAzMTUsIm5iZiI6MTc3NjAxMDMxNSwia2V5X2lkIjoiMDRmZmFhNzktYzU3Yy00NWU3LTg5ZTEtMDU2NzRlZTZhOTg3In0.KOKErNC9ADIAXpktw1RzLyYWvWX7URdLrppuw-YuN9Q",
-  aiBaseUrl: process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || "https://mlapi.run/ec6741df-87b6-4eb2-8db5-142337cd29a8/v1",
+  aiApiKey: process.env.AI_API_KEY || process.env.OPENAI_API_KEY,
+  aiBaseUrl: process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL,
   aiModel: process.env.AI_MODEL || process.env.OPENAI_MODEL || "openai/gpt-5-mini",
   aiTimeoutMs: Number(process.env.AI_TIMEOUT_MS || process.env.OPENAI_TIMEOUT_MS || 90000),
   corsOrigins: (process.env.CORS_ORIGIN || "*")
@@ -41,10 +41,15 @@ export const config = {
   allowServerlessRedis
 };
 
-if (!config.databaseUrl) {
-  throw new Error("DATABASE_URL is required — set it in .env");
-}
+const requiredEnv = [
+  ["DATABASE_URL", config.databaseUrl],
+  ["AUTH_SECRET", config.authSecret],
+  ["REDIS_URL", config.redisUrl],
+  ["AI_API_KEY or OPENAI_API_KEY", config.aiApiKey],
+  ["AI_BASE_URL or OPENAI_BASE_URL", config.aiBaseUrl]
+];
 
-if (!config.authSecret) {
-  throw new Error("AUTH_SECRET is required — set it in .env");
+const missingEnv = requiredEnv.filter(([, value]) => !value).map(([key]) => key);
+if (missingEnv.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnv.join(", ")}`);
 }

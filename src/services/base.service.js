@@ -437,26 +437,32 @@ export async function getMoviesBySales({
       const limitClause = String(top10) === "true" || top10 === true ? "LIMIT 10" : "";
 
       const result = await query(
-        `SELECT
-        m.movie_id,
-        m.title,
-        m.genre,
-        m.rating_usia,
-        m.duration_min,
-        COUNT(t.tiket_id)::int AS tickets_sold,
-        COALESCE(SUM(t.final_price), 0)::float8 AS revenue,
-        COUNT(CASE WHEN LOWER(t.seat_category) = 'regular' THEN 1 END)::int AS regular_seats,
-        COUNT(CASE WHEN LOWER(t.seat_category) = 'vip' THEN 1 END)::int AS vip_seats,
-        COUNT(CASE WHEN LOWER(t.seat_category) = 'sweetbox' THEN 1 END)::int AS sweetbox_seats
-     FROM movies m
-     JOIN schedules s ON s.movie_id = m.movie_id
-     JOIN studio st ON s.studio_id = st.studio_id
-     JOIN cinema c ON st.cinema_id = c.cinema_id
-     LEFT JOIN tiket t ON t.schedule_id = s.schedule_id
-     ${whereClause}
-     GROUP BY m.movie_id, m.title, m.genre, m.rating_usia, m.duration_min
-     ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
-     ${limitClause}`,
+        `WITH filtered_schedules AS (
+          SELECT
+            s.schedule_id,
+            s.movie_id
+          FROM schedules s
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          ${whereClause}
+        )
+        SELECT
+          m.movie_id,
+          m.title,
+          m.genre,
+          m.rating_usia,
+          m.duration_min,
+          COUNT(t.tiket_id)::int AS tickets_sold,
+          COALESCE(SUM(t.final_price), 0)::float8 AS revenue,
+          COUNT(CASE WHEN LOWER(t.seat_category) = 'regular' THEN 1 END)::int AS regular_seats,
+          COUNT(CASE WHEN LOWER(t.seat_category) = 'vip' THEN 1 END)::int AS vip_seats,
+          COUNT(CASE WHEN LOWER(t.seat_category) = 'sweetbox' THEN 1 END)::int AS sweetbox_seats
+        FROM filtered_schedules fs
+        JOIN movies m ON fs.movie_id = m.movie_id
+        LEFT JOIN tiket t ON t.schedule_id = fs.schedule_id
+        GROUP BY m.movie_id, m.title, m.genre, m.rating_usia, m.duration_min
+        ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
+        ${limitClause}`,
         params
       );
 

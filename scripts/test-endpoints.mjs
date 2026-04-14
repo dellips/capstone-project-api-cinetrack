@@ -244,11 +244,13 @@ async function main() {
   });
 
   const loginBody = loginResponse?.json?.() || null;
-  const accessToken = loginBody?.data?.token || null;
+  const loginAccessToken = loginBody?.data?.token || null;
   const refreshToken = loginBody?.data?.refresh_token || null;
-  const authHeaders = accessToken
+  let activeAccessToken = loginAccessToken;
+
+  let authHeaders = activeAccessToken
     ? {
-        authorization: `Bearer ${accessToken}`
+        authorization: `Bearer ${activeAccessToken}`
       }
     : undefined;
 
@@ -258,7 +260,7 @@ async function main() {
     headers: authHeaders
   });
 
-  await runCase(app, recorder, {
+  const refreshResponse = await runCase(app, recorder, {
     name: "Auth Refresh",
     method: "POST",
     url: "/api/v1/auth/refresh",
@@ -266,6 +268,16 @@ async function main() {
       refresh_token: refreshToken
     }
   });
+
+  const refreshBody = refreshResponse?.json?.() || null;
+  const refreshedAccessToken = refreshBody?.data?.token || null;
+
+  if (refreshedAccessToken) {
+    activeAccessToken = refreshedAccessToken;
+    authHeaders = {
+      authorization: `Bearer ${activeAccessToken}`
+    };
+  }
 
   await runCase(app, recorder, {
     name: "Movies List",
@@ -384,82 +396,98 @@ async function main() {
 
   await runCase(app, recorder, {
     name: "Dashboard Executive",
-    url: "/api/v1/dashboard/executive"
+    url: "/api/v1/dashboard/executive",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Overview",
-    url: "/api/v1/dashboard/sales/overview"
+    url: "/api/v1/dashboard/sales/overview",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Revenue by Cinema",
-    url: "/api/v1/dashboard/sales/revenue-by-cinema"
+    url: "/api/v1/dashboard/sales/revenue-by-cinema",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Revenue by Studio",
-    url: "/api/v1/dashboard/sales/revenue-by-studio"
+    url: "/api/v1/dashboard/sales/revenue-by-studio",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Revenue by Movie",
-    url: "/api/v1/dashboard/sales/revenue-by-movie"
+    url: "/api/v1/dashboard/sales/revenue-by-movie",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Time Slots",
-    url: "/api/v1/dashboard/sales/time-slots"
+    url: "/api/v1/dashboard/sales/time-slots",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Trend",
-    url: "/api/v1/dashboard/sales/trend"
+    url: "/api/v1/dashboard/sales/trend",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Weekend vs Weekday",
-    url: "/api/v1/dashboard/sales/weekend-vs-weekday"
+    url: "/api/v1/dashboard/sales/weekend-vs-weekday",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Payment",
-    url: "/api/v1/dashboard/sales/payment"
+    url: "/api/v1/dashboard/sales/payment",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Sales Operational Risk",
-    url: "/api/v1/dashboard/sales/operational-risk"
+    url: "/api/v1/dashboard/sales/operational-risk",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Films Overview",
-    url: "/api/v1/dashboard/films/overview"
+    url: "/api/v1/dashboard/films/overview",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Films Performance",
-    url: "/api/v1/dashboard/films/performance"
+    url: "/api/v1/dashboard/films/performance",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Films Schedules",
-    url: "/api/v1/dashboard/films/schedules"
+    url: "/api/v1/dashboard/films/schedules",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Films Occupancy",
-    url: "/api/v1/dashboard/films/occupancy"
+    url: "/api/v1/dashboard/films/occupancy",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Films Distribution",
-    url: "/api/v1/dashboard/films/distribution"
+    url: "/api/v1/dashboard/films/distribution",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Dashboard Films Operational Risk",
-    url: "/api/v1/dashboard/films/operational-risk"
+    url: "/api/v1/dashboard/films/operational-risk",
+    headers: authHeaders
   });
 
   const notificationsResponse = await runCase(app, recorder, {
@@ -469,7 +497,8 @@ async function main() {
 
   await runCase(app, recorder, {
     name: "Dashboard Notifications",
-    url: "/api/v1/dashboard/notifications?limit=5"
+    url: "/api/v1/dashboard/notifications?limit=5",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
@@ -479,12 +508,14 @@ async function main() {
 
   await runCase(app, recorder, {
     name: "Payments Config",
-    url: "/api/v1/payments/config"
+    url: "/api/v1/payments/config",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Cities",
-    url: "/api/v1/cities"
+    url: "/api/v1/cities",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
@@ -501,22 +532,26 @@ async function main() {
 
   await runCase(app, recorder, {
     name: "Analytics Pricing Recommendation",
-    url: "/api/v1/analytics/pricing-recommendation"
+    url: "/api/v1/analytics/pricing-recommendation",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Analytics Best Ad Slot",
-    url: "/api/v1/analytics/best-ad-slot"
+    url: "/api/v1/analytics/best-ad-slot",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Analytics Early Blockbuster",
-    url: "/api/v1/analytics/early-blockbuster"
+    url: "/api/v1/analytics/early-blockbuster",
+    headers: authHeaders
   });
 
   await runCase(app, recorder, {
     name: "Analytics Cannibalization",
-    url: "/api/v1/analytics/cannibalization"
+    url: "/api/v1/analytics/cannibalization",
+    headers: authHeaders
   });
 
   if (authHeaders) {

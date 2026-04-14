@@ -92,77 +92,96 @@ async function getCinemaBreakdownRows({
         FROM cinema c
         ${whereClause}
       ),
-      cinema_metrics AS (
+      filtered_sales_schedules AS (
         SELECT
           fc.cinema_id,
           fc.cinema_name,
           fc.city,
           fc.address,
-          COUNT(t.tiket_id)::int AS total_tickets,
-          COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS total_revenue,
-          COUNT(DISTINCT CASE WHEN t.tiket_id IS NOT NULL THEN st.studio_id END)::int AS active_studios
+          st.studio_id,
+          s.schedule_id,
+          s.movie_id
         FROM filtered_cinemas fc
-        LEFT JOIN studio st ON fc.cinema_id = st.cinema_id
-        LEFT JOIN schedules s ON st.studio_id = s.studio_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        JOIN studio st ON fc.cinema_id = st.cinema_id
+        JOIN schedules s ON st.studio_id = s.studio_id
         WHERE 1 = 1 ${salesWhereClause}
-        GROUP BY fc.cinema_id, fc.cinema_name, fc.city, fc.address
+      ),
+      filtered_ticket_events AS (
+        SELECT
+          t.tiket_id,
+          t.schedule_id,
+          t.final_price
+        FROM tiket t
+        WHERE 1 = 1 ${ticketDateFilter}
+      ),
+      cinema_metrics AS (
+        SELECT
+          fs.cinema_id,
+          fs.cinema_name,
+          fs.city,
+          fs.address,
+          COUNT(ft.tiket_id)::int AS total_tickets,
+          COALESCE(SUM(CAST(ft.final_price AS NUMERIC)), 0)::numeric AS total_revenue,
+          COUNT(DISTINCT CASE WHEN ft.tiket_id IS NOT NULL THEN fs.studio_id END)::int AS active_studios
+        FROM filtered_sales_schedules fs
+        LEFT JOIN filtered_ticket_events ft ON fs.schedule_id = ft.schedule_id
+        GROUP BY fs.cinema_id, fs.cinema_name, fs.city, fs.address
+      ),
+      filtered_active_schedules AS (
+        SELECT
+          fc.cinema_id,
+          st.total_capacity,
+          s.schedule_id,
+          s.movie_id
+        FROM filtered_cinemas fc
+        JOIN studio st ON fc.cinema_id = st.cinema_id
+        JOIN schedules s ON st.studio_id = s.studio_id
+        WHERE 1 = 1 ${activeMovieWhereClause}
       ),
       active_movie_metrics AS (
         SELECT
-          fc.cinema_id,
-          COUNT(DISTINCT s.movie_id)::int AS active_movies
-        FROM filtered_cinemas fc
-        JOIN studio st ON fc.cinema_id = st.cinema_id
-        JOIN schedules s ON st.studio_id = s.studio_id
-        WHERE 1 = 1 ${activeMovieWhereClause}
-        GROUP BY fc.cinema_id
+          fas.cinema_id,
+          COUNT(DISTINCT fas.movie_id)::int AS active_movies
+        FROM filtered_active_schedules fas
+        GROUP BY fas.cinema_id
       ),
       top_movie_ranked AS (
         SELECT
-          fc.cinema_id,
+          fs.cinema_id,
           m.movie_id,
           m.title,
-          COUNT(t.tiket_id)::int AS tickets_sold,
+          COUNT(ft.tiket_id)::int AS tickets_sold,
           ROW_NUMBER() OVER (
-            PARTITION BY fc.cinema_id
-            ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
+            PARTITION BY fs.cinema_id
+            ORDER BY COUNT(ft.tiket_id) DESC, m.title ASC
           ) AS row_num
-        FROM filtered_cinemas fc
-        JOIN studio st ON fc.cinema_id = st.cinema_id
-        JOIN schedules s ON st.studio_id = s.studio_id
-        JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
-        WHERE 1 = 1 ${salesWhereClause}
-        GROUP BY fc.cinema_id, m.movie_id, m.title
+        FROM filtered_sales_schedules fs
+        JOIN movies m ON fs.movie_id = m.movie_id
+        LEFT JOIN filtered_ticket_events ft ON fs.schedule_id = ft.schedule_id
+        GROUP BY fs.cinema_id, m.movie_id, m.title
       ),
       top_genre_ranked AS (
         SELECT
-          fc.cinema_id,
+          fs.cinema_id,
           TRIM(genre_item) AS genre,
-          COUNT(t.tiket_id)::int AS tickets_sold,
+          COUNT(ft.tiket_id)::int AS tickets_sold,
           ROW_NUMBER() OVER (
-            PARTITION BY fc.cinema_id
-            ORDER BY COUNT(t.tiket_id) DESC, TRIM(genre_item) ASC
+            PARTITION BY fs.cinema_id
+            ORDER BY COUNT(ft.tiket_id) DESC, TRIM(genre_item) ASC
           ) AS row_num
-        FROM filtered_cinemas fc
-        JOIN studio st ON fc.cinema_id = st.cinema_id
-        JOIN schedules s ON st.studio_id = s.studio_id
-        JOIN movies m ON s.movie_id = m.movie_id
-        LEFT JOIN tiket t ON s.schedule_id = t.schedule_id ${ticketDateFilter}
+        FROM filtered_sales_schedules fs
+        JOIN movies m ON fs.movie_id = m.movie_id
+        LEFT JOIN filtered_ticket_events ft ON fs.schedule_id = ft.schedule_id
         CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
-        WHERE TRIM(genre_item) <> '' ${salesWhereClause}
-        GROUP BY fc.cinema_id, TRIM(genre_item)
+        WHERE TRIM(genre_item) <> ''
+        GROUP BY fs.cinema_id, TRIM(genre_item)
       ),
       cinema_schedule_capacity AS (
         SELECT
-          fc.cinema_id,
-          COALESCE(SUM(st.total_capacity), 0)::bigint AS total_capacity
-        FROM filtered_cinemas fc
-        JOIN studio st ON fc.cinema_id = st.cinema_id
-        JOIN schedules s ON st.studio_id = s.studio_id
-        WHERE 1 = 1 ${activeMovieWhereClause}
-        GROUP BY fc.cinema_id
+          fas.cinema_id,
+          COALESCE(SUM(fas.total_capacity), 0)::bigint AS total_capacity
+        FROM filtered_active_schedules fas
+        GROUP BY fas.cinema_id
       )
       SELECT
         cm.cinema_id,
@@ -200,35 +219,35 @@ async function getCinemaBreakdownRows({
     const occupancy = totalCapacity > 0 ? roundMetric((totalTickets * 100) / totalCapacity) : 0;
 
     return {
-    cinema_id: row.cinema_id,
-    cinema_name: row.cinema_name,
-    city: row.city,
-    address: row.address,
-    status: Number(row.total_tickets || 0) > 0 ? "active" : "inactive",
-    lat: null,
-    lng: null,
-    is_mock_location: true,
-    metrics: {
-      total_tickets: totalTickets,
-      total_revenue: Number(row.total_revenue || 0),
-      active_movies: Number(row.active_movies || 0),
-      active_studios: Number(row.active_studios || 0),
-      total_capacity: totalCapacity,
-      occupancy
-    },
-    top_movie: row.top_movie_title
-      ? {
-          movie_id: row.top_movie_id,
-          title: row.top_movie_title,
-          tickets_sold: Number(row.top_movie_tickets_sold || 0)
-        }
-      : null,
-    top_genre: row.top_genre
-      ? {
-          genre: row.top_genre,
-          tickets_sold: Number(row.top_genre_tickets_sold || 0)
-        }
-      : null
+      cinema_id: row.cinema_id,
+      cinema_name: row.cinema_name,
+      city: row.city,
+      address: row.address,
+      status: Number(row.total_tickets || 0) > 0 ? "active" : "inactive",
+      lat: null,
+      lng: null,
+      is_mock_location: true,
+      metrics: {
+        total_tickets: totalTickets,
+        total_revenue: Number(row.total_revenue || 0),
+        active_movies: Number(row.active_movies || 0),
+        active_studios: Number(row.active_studios || 0),
+        total_capacity: totalCapacity,
+        occupancy
+      },
+      top_movie: row.top_movie_title
+        ? {
+            movie_id: row.top_movie_id,
+            title: row.top_movie_title,
+            tickets_sold: Number(row.top_movie_tickets_sold || 0)
+          }
+        : null,
+      top_genre: row.top_genre
+        ? {
+            genre: row.top_genre,
+            tickets_sold: Number(row.top_genre_tickets_sold || 0)
+          }
+        : null
     };
   });
 }

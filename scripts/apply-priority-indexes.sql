@@ -5,10 +5,10 @@ CREATE INDEX IF NOT EXISTS idx_tiket_schedule_id
   ON tiket (schedule_id);
 
 CREATE INDEX IF NOT EXISTS idx_schedules_show_date_studio
-  ON schedules ((show_date::date), studio_id);
+  ON schedules (show_date, studio_id);
 
 CREATE INDEX IF NOT EXISTS idx_schedules_show_date_movie
-  ON schedules ((show_date::date), movie_id);
+  ON schedules (show_date, movie_id);
 
 CREATE INDEX IF NOT EXISTS idx_studio_cinema_id
   ON studio (cinema_id);
@@ -18,4 +18,4 @@ CREATE INDEX IF NOT EXISTS idx_cinema_city_cinema_id
 
 -- Optional
 CREATE INDEX IF NOT EXISTS idx_schedules_show_date_start_time
-  ON schedules ((show_date::date), (start_time::time));
+  ON schedules (show_date, start_time);

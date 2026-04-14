@@ -5,7 +5,6 @@ import { createHttpError } from "../utils/http-error.js";
 import { withCache } from "../utils/cache.js";
 import { config } from "../config.js";
 
-// Menyusun filter SQL statistik agar query tetap ringkas dan konsisten.
 function buildStatsFilters({ city, cinemaId, studioId }, startIndex = 3) {
   const filters = [];
   const values = [];
@@ -28,7 +27,6 @@ function buildStatsFilters({ city, cinemaId, studioId }, startIndex = 3) {
   return { filters, values };
 }
 
-// Menghitung persen pertumbuhan current vs previous dengan hasil dua desimal.
 function percentageGrowth(current, previous) {
   if (previous === 0) {
     return current > 0 ? 100 : 0;
@@ -37,7 +35,6 @@ function percentageGrowth(current, previous) {
   return Number((((current - previous) / previous) * 100).toFixed(2));
 }
 
-// Menghasilkan KPI utama dashboard beserta metadata periode dan filter yang aktif.
 export async function getSummary({
   start_date,
   end_date,
@@ -73,22 +70,29 @@ export async function getSummary({
         const params = [scheduleStartDate, scheduleEndDate, ...values];
 
         const result = await query(
-          `WITH schedule_stats AS (
+          `WITH filtered_schedules AS (
           SELECT
             s.schedule_id,
             st.total_capacity,
-            COUNT(t.tiket_id)::int AS tickets,
-            CASE
-              WHEN st.total_capacity > 0
-                THEN COUNT(t.tiket_id)::float8 / st.total_capacity::float8
-              ELSE 0
-            END AS schedule_occupancy
+            st.cinema_id
           FROM schedules s
           JOIN studio st ON s.studio_id = st.studio_id
-          LEFT JOIN tiket t ON t.schedule_id = s.schedule_id
           JOIN cinema c ON st.cinema_id = c.cinema_id
           WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)${extraFilterSql}
-          GROUP BY s.schedule_id, st.total_capacity
+        ),
+        schedule_stats AS (
+          SELECT
+            fs.schedule_id,
+            fs.total_capacity,
+            COUNT(t.tiket_id)::int AS tickets,
+            CASE
+              WHEN fs.total_capacity > 0
+                THEN COUNT(t.tiket_id)::float8 / fs.total_capacity::float8
+              ELSE 0
+            END AS schedule_occupancy
+          FROM filtered_schedules fs
+          LEFT JOIN tiket t ON t.schedule_id = fs.schedule_id
+          GROUP BY fs.schedule_id, fs.total_capacity
         ),
         occupancy_agg AS (
           SELECT
@@ -101,13 +105,10 @@ export async function getSummary({
           SELECT
             COUNT(t.tiket_id)::int AS total_tickets,
             COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS revenue,
-            COUNT(DISTINCT s.schedule_id)::int AS total_transactions,
-            COUNT(DISTINCT c.cinema_id)::int AS cinema_aktif
-          FROM tiket t
-          JOIN schedules s ON t.schedule_id = s.schedule_id
-          JOIN studio st ON s.studio_id = st.studio_id
-          JOIN cinema c ON st.cinema_id = c.cinema_id
-          WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)${extraFilterSql}
+            COUNT(DISTINCT fs.schedule_id)::int AS total_transactions,
+            COUNT(DISTINCT fs.cinema_id)::int AS cinema_aktif
+          FROM filtered_schedules fs
+          LEFT JOIN tiket t ON t.schedule_id = fs.schedule_id
         )
         SELECT
           ta.total_tickets,
@@ -134,24 +135,31 @@ export async function getSummary({
         };
       };
 
-      const current = await runQuery(startDate, endDate);
-      const totalCinemaResult = await query("SELECT COUNT(*)::int AS total FROM cinema");
-      current.cinema_tersedia = Number(totalCinemaResult.rows[0]?.total || 0);
-
       let growth = {};
+      let current = null;
+      const totalCinemaPromise = query("SELECT COUNT(*)::int AS total FROM cinema");
 
       if (String(compare) === "true" || compare === true) {
         const diff = endDate.getTime() - startDate.getTime();
         const previousEnd = new Date(startDate.getTime() - 1);
         const previousStart = new Date(previousEnd.getTime() - diff);
-        const previous = await runQuery(previousStart, previousEnd);
+        const [currentResult, previous] = await Promise.all([
+          runQuery(startDate, endDate),
+          runQuery(previousStart, previousEnd)
+        ]);
+        current = currentResult;
 
         growth = {
           tickets: percentageGrowth(current.total_tickets, previous.total_tickets),
           revenue: percentageGrowth(current.revenue, previous.revenue),
           avg_occupancy: percentageGrowth(current.avg_occupancy, previous.avg_occupancy)
         };
+      } else {
+        current = await runQuery(startDate, endDate);
       }
+
+      const totalCinemaResult = await totalCinemaPromise;
+      current.cinema_tersedia = Number(totalCinemaResult.rows[0]?.total || 0);
 
       return {
         data: {
@@ -174,7 +182,6 @@ export async function getSummary({
   );
 }
 
-// Mengelompokkan tren tiket dan revenue berdasarkan jam atau tanggal untuk chart frontend.
 export async function getTrends({
   start_date,
   end_date,
@@ -238,16 +245,23 @@ export async function getTrends({
         const filters = buildTrendFilters(params);
 
         const result = await query(
-          `SELECT
-          ${timeExpression} AS time_group,
+          `WITH filtered_schedules AS (
+          SELECT
+            s.schedule_id,
+            s.start_time,
+            s.show_date
+          FROM schedules s
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)
+          ${filters.length ? `AND ${filters.join(" AND ")}` : ""}
+       )
+       SELECT
+          ${timeExpression.replaceAll("s.", "fs.")} AS time_group,
           COUNT(t.tiket_id)::int AS tickets_sold,
           COALESCE(SUM(CAST(t.final_price AS NUMERIC)), 0)::numeric AS revenue
-       FROM tiket t
-       JOIN schedules s ON t.schedule_id = s.schedule_id
-       JOIN studio st ON s.studio_id = st.studio_id
-       JOIN cinema c ON st.cinema_id = c.cinema_id
-       WHERE CAST(s.show_date AS DATE) BETWEEN CAST($1 AS DATE) AND CAST($2 AS DATE)
-       ${filters.length ? `AND ${filters.join(" AND ")}` : ""}
+       FROM filtered_schedules fs
+       JOIN tiket t ON t.schedule_id = fs.schedule_id
        GROUP BY time_group
        ORDER BY time_group`,
           params
@@ -260,7 +274,13 @@ export async function getTrends({
         }));
       };
 
-      const breakdown = await runTrendQuery(startDate, endDate);
+      const diff = endDate.getTime() - startDate.getTime();
+      const previousEnd = new Date(startDate.getTime() - 1);
+      const previousStart = new Date(previousEnd.getTime() - diff);
+      const [breakdown, previousBreakdown] = await Promise.all([
+        runTrendQuery(startDate, endDate),
+        runTrendQuery(previousStart, previousEnd)
+      ]);
       const currentTotals = breakdown.reduce(
         (accumulator, item) => ({
           total_tickets: accumulator.total_tickets + item.tickets_sold,
@@ -269,10 +289,6 @@ export async function getTrends({
         { total_tickets: 0, revenue: 0 }
       );
 
-      const diff = endDate.getTime() - startDate.getTime();
-      const previousEnd = new Date(startDate.getTime() - 1);
-      const previousStart = new Date(previousEnd.getTime() - diff);
-      const previousBreakdown = await runTrendQuery(previousStart, previousEnd);
       const previousTotals = previousBreakdown.reduce(
         (accumulator, item) => ({
           total_tickets: accumulator.total_tickets + item.tickets_sold,
@@ -302,7 +318,6 @@ export async function getTrends({
   );
 }
 
-// Menghitung okupansi kursi per grup waktu agar frontend bisa membuat chart kapasitas.
 export async function getOccupancy({
   start_date,
   end_date,
@@ -427,7 +442,6 @@ export async function getOccupancy({
   );
 }
 
-// Menggabungkan ringkasan performa film dan breakdown rating usia berdasarkan filter aktif.
 export async function getMovieStats({
   city = null,
   cinema_id = null,
@@ -449,164 +463,134 @@ export async function getMovieStats({
     config.cacheTtlSeconds,
     async () => {
       const dateRange = resolveOptionalDateRange(start_date, end_date);
-      const buildMovieFilters = (movieAlias = "m", studioAlias = "st", cinemaAlias = "c") => {
-        const params = [];
-        const filters = [];
+      const params = [];
+      const filters = [];
 
-        if (city) {
-          params.push(city);
-          filters.push(`${cinemaAlias}.city = $${params.length}`);
-        }
+      if (city) {
+        params.push(city);
+        filters.push(`c.city = $${params.length}`);
+      }
+      if (cinema_id) {
+        params.push(cinema_id);
+        filters.push(`st.cinema_id = $${params.length}`);
+      }
+      if (movie_id) {
+        params.push(movie_id);
+        filters.push(`m.movie_id = $${params.length}`);
+      }
+      if (rating_usia) {
+        params.push(rating_usia);
+        filters.push(`m.rating_usia = $${params.length}`);
+      }
+      if (studio_id) {
+        params.push(studio_id);
+        filters.push(`st.studio_id = $${params.length}`);
+      }
+      if (dateRange) {
+        params.push(formatDateOnly(dateRange.startDate), formatDateOnly(dateRange.endDate));
+        filters.push(`CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`);
+      }
 
-        if (cinema_id) {
-          params.push(cinema_id);
-          filters.push(`${studioAlias}.cinema_id = $${params.length}`);
-        }
-
-        if (movie_id) {
-          params.push(movie_id);
-          filters.push(`${movieAlias}.movie_id = $${params.length}`);
-        }
-
-        if (rating_usia) {
-          params.push(rating_usia);
-          filters.push(`${movieAlias}.rating_usia = $${params.length}`);
-        }
-
-        if (studio_id) {
-          params.push(studio_id);
-          filters.push(`${studioAlias}.studio_id = $${params.length}`);
-        }
-
-        if (dateRange) {
-          params.push(formatDateOnly(dateRange.startDate), formatDateOnly(dateRange.endDate));
-          filters.push(`CAST(s.show_date AS DATE) BETWEEN CAST($${params.length - 1} AS DATE) AND CAST($${params.length} AS DATE)`);
-        }
-
-        return {
-          params,
-          whereClause: filters.length ? `WHERE ${filters.join(" AND ")}` : ""
-        };
-      };
-
-      const summaryFilters = buildMovieFilters();
-      const summaryResult = await query(
-        `SELECT COUNT(DISTINCT m.movie_id)::int AS total_movies_showing
-     FROM movies m
-     JOIN schedules s ON m.movie_id = s.movie_id
-     JOIN studio st ON s.studio_id = st.studio_id
-     JOIN cinema c ON st.cinema_id = c.cinema_id
-     ${summaryFilters.whereClause}`,
-        summaryFilters.params
+      const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+      const result = await query(
+        `WITH filtered AS (
+          SELECT
+            s.schedule_id,
+            m.movie_id,
+            m.title,
+            COALESCE(m.rating_usia, 'Unknown') AS rating_usia,
+            m.genre,
+            t.tiket_id,
+            LOWER(COALESCE(t.seat_category, '')) AS seat_category
+          FROM schedules s
+          JOIN movies m ON s.movie_id = m.movie_id
+          JOIN studio st ON s.studio_id = st.studio_id
+          JOIN cinema c ON st.cinema_id = c.cinema_id
+          LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
+          ${whereClause}
+        ),
+        summary AS (
+          SELECT
+            COUNT(DISTINCT movie_id)::int AS total_movies_showing,
+            COUNT(tiket_id)::int AS total_tickets_sold
+          FROM filtered
+        ),
+        top_movie AS (
+          SELECT movie_id, title, COUNT(tiket_id)::int AS tickets_sold
+          FROM filtered
+          WHERE tiket_id IS NOT NULL
+          GROUP BY movie_id, title
+          ORDER BY COUNT(tiket_id) DESC, title ASC
+          LIMIT 1
+        ),
+        top_genre AS (
+          SELECT TRIM(genre_item) AS genre, COUNT(f.tiket_id)::int AS tickets_sold
+          FROM filtered f
+          CROSS JOIN LATERAL unnest(string_to_array(COALESCE(f.genre, ''), ',')) AS genre_item
+          WHERE TRIM(genre_item) <> '' AND f.tiket_id IS NOT NULL
+          GROUP BY TRIM(genre_item)
+          ORDER BY COUNT(f.tiket_id) DESC, TRIM(genre_item) ASC
+          LIMIT 1
+        ),
+        rating_breakdown AS (
+          SELECT
+            rating_usia,
+            COUNT(tiket_id)::int AS total_tickets_sold,
+            COUNT(DISTINCT schedule_id)::int AS total_showings,
+            COUNT(CASE WHEN seat_category = 'regular' THEN 1 END)::int AS regular_seats,
+            COUNT(CASE WHEN seat_category = 'vip' THEN 1 END)::int AS vip_seats,
+            COUNT(CASE WHEN seat_category = 'sweetbox' THEN 1 END)::int AS sweetbox_seats
+          FROM filtered
+          GROUP BY rating_usia
+          ORDER BY rating_usia
+        )
+        SELECT
+          s.total_movies_showing,
+          s.total_tickets_sold,
+          (
+            SELECT json_build_object('movie_id', tm.movie_id, 'title', tm.title, 'tickets_sold', tm.tickets_sold)
+            FROM top_movie tm
+          ) AS top_movie,
+          (
+            SELECT json_build_object('genre', tg.genre, 'tickets_sold', tg.tickets_sold)
+            FROM top_genre tg
+          ) AS top_genre,
+          COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'rating_usia', rb.rating_usia,
+                  'total_tickets_sold', rb.total_tickets_sold,
+                  'total_showings', rb.total_showings,
+                  'seat_distribution', json_build_object(
+                    'Regular', rb.regular_seats,
+                    'VIP', rb.vip_seats,
+                    'Sweetbox', rb.sweetbox_seats
+                  )
+                )
+              )
+              FROM rating_breakdown rb
+            ),
+            '[]'::json
+          ) AS breakdown_rating_usia
+        FROM summary s`,
+        params
       );
 
-      const ticketsFilters = buildMovieFilters();
-      const ticketsResult = await query(
-        `SELECT COUNT(t.tiket_id)::int AS total_tickets_sold
-     FROM tiket t
-     JOIN schedules s ON t.schedule_id = s.schedule_id
-     JOIN movies m ON s.movie_id = m.movie_id
-     JOIN studio st ON s.studio_id = st.studio_id
-     JOIN cinema c ON st.cinema_id = c.cinema_id
-     ${ticketsFilters.whereClause}`,
-        ticketsFilters.params
-      );
-
-      const topMovieFilters = buildMovieFilters();
-      const topMovieResult = await query(
-        `SELECT
-        m.movie_id,
-        m.title,
-        COUNT(t.tiket_id)::int AS tickets_sold
-     FROM tiket t
-     JOIN schedules s ON t.schedule_id = s.schedule_id
-     JOIN movies m ON s.movie_id = m.movie_id
-     JOIN studio st ON s.studio_id = st.studio_id
-     JOIN cinema c ON st.cinema_id = c.cinema_id
-     ${topMovieFilters.whereClause}
-     GROUP BY m.movie_id, m.title
-     ORDER BY COUNT(t.tiket_id) DESC, m.title ASC
-     LIMIT 1`,
-        topMovieFilters.params
-      );
-
-      const topGenreFilters = buildMovieFilters();
-      const topGenreResult = await query(
-        `SELECT
-        TRIM(genre_item) AS genre,
-        COUNT(t.tiket_id)::int AS tickets_sold
-     FROM tiket t
-     JOIN schedules s ON t.schedule_id = s.schedule_id
-     JOIN movies m ON s.movie_id = m.movie_id
-     JOIN studio st ON s.studio_id = st.studio_id
-     JOIN cinema c ON st.cinema_id = c.cinema_id
-     CROSS JOIN LATERAL unnest(string_to_array(COALESCE(m.genre, ''), ',')) AS genre_item
-     ${topGenreFilters.whereClause ? `${topGenreFilters.whereClause} AND TRIM(genre_item) <> ''` : "WHERE TRIM(genre_item) <> ''"}
-     GROUP BY TRIM(genre_item)
-     ORDER BY COUNT(t.tiket_id) DESC, TRIM(genre_item) ASC
-     LIMIT 1`,
-        topGenreFilters.params
-      );
-
-      const ratingFilters = buildMovieFilters();
-      const ratingResult = await query(
-        `SELECT
-        COALESCE(m.rating_usia, 'Unknown') AS rating_usia,
-        COUNT(t.tiket_id)::int AS total_tickets_sold,
-        COUNT(DISTINCT s.schedule_id)::int AS total_showings,
-        COUNT(CASE WHEN LOWER(t.seat_category) = 'regular' THEN 1 END)::int AS regular_seats,
-        COUNT(CASE WHEN LOWER(t.seat_category) = 'vip' THEN 1 END)::int AS vip_seats,
-        COUNT(CASE WHEN LOWER(t.seat_category) = 'sweetbox' THEN 1 END)::int AS sweetbox_seats
-     FROM movies m
-     JOIN schedules s ON m.movie_id = s.movie_id
-     JOIN studio st ON s.studio_id = st.studio_id
-     JOIN cinema c ON st.cinema_id = c.cinema_id
-     LEFT JOIN tiket t ON s.schedule_id = t.schedule_id
-     ${ratingFilters.whereClause}
-     GROUP BY COALESCE(m.rating_usia, 'Unknown')
-     ORDER BY COALESCE(m.rating_usia, 'Unknown')`,
-        ratingFilters.params
-      );
-
-      const summaryRow = summaryResult.rows[0] || {};
-      const ticketsRow = ticketsResult.rows[0] || {};
-      const topMovieRow = topMovieResult.rows[0] || {};
-      const topGenreRow = topGenreResult.rows[0] || {};
-
+      const row = result.rows[0] || {};
       return {
         summary: {
-          total_movies_showing: Number(summaryRow.total_movies_showing || 0),
-          total_tickets_sold: Number(ticketsRow.total_tickets_sold || 0),
-          top_movie: topMovieRow.title
-            ? {
-                movie_id: topMovieRow.movie_id,
-                title: topMovieRow.title,
-                tickets_sold: Number(topMovieRow.tickets_sold || 0)
-              }
-            : null,
-          top_genre: topGenreRow.genre
-            ? {
-                genre: topGenreRow.genre,
-                tickets_sold: Number(topGenreRow.tickets_sold || 0)
-              }
-            : null
-        },
-        breakdown_rating_usia: ratingResult.rows.map((row) => ({
-          rating_usia: row.rating_usia,
+          total_movies_showing: Number(row.total_movies_showing || 0),
           total_tickets_sold: Number(row.total_tickets_sold || 0),
-          total_showings: Number(row.total_showings || 0),
-          seat_distribution: {
-            Regular: Number(row.regular_seats || 0),
-            VIP: Number(row.vip_seats || 0),
-            Sweetbox: Number(row.sweetbox_seats || 0)
-          }
-        }))
+          top_movie: row.top_movie || null,
+          top_genre: row.top_genre || null
+        },
+        breakdown_rating_usia: row.breakdown_rating_usia || []
       };
     }
   );
 }
 
-// Membuat prediksi harian sederhana berbasis pola weekday dari beberapa minggu terakhir.
 export async function getForecast({
   start_date = null,
   end_date = null,
