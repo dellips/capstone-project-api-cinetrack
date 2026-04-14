@@ -41,10 +41,19 @@ const CREATE_UNIQUE_INDEX_SQL = `
   ON ai_insights (scope_type, scope_value, period_start, period_end)
 `;
 
+const DROP_LEGACY_CONSTRAINTS_SQL = [
+  "ALTER TABLE ai_insights DROP CONSTRAINT IF EXISTS ai_insights_scope_type_period_start_period_end_key",
+  "DROP INDEX IF EXISTS ai_insights_scope_type_period_start_period_end_key"
+];
+
 export async function ensureAiInsightsTable() {
   await query(CREATE_TABLE_SQL);
 
   for (const statement of ALTER_COLUMNS_SQL) {
+    await query(statement);
+  }
+
+  for (const statement of DROP_LEGACY_CONSTRAINTS_SQL) {
     await query(statement);
   }
 
