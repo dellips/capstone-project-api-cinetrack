@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { config } from "../config.js";
-import { getRedisClient } from "../redis.js";
+import { getRedisClient, markRedisUnavailable } from "../redis.js";
 
 const cacheRequestContext = new AsyncLocalStorage();
 
@@ -38,6 +38,19 @@ function setCacheContext(status, key = null) {
   }
 }
 
+function isFatalRedisCacheError(error) {
+  const message = String(error?.message || "").toLowerCase();
+
+  return (
+    message.includes("max number of clients reached")
+    || message.includes("enotfound")
+    || message.includes("getaddrinfo")
+    || message.includes("connection timeout")
+    || message.includes("econnrefused")
+    || message.includes("socket closed unexpectedly")
+  );
+}
+
 export function getCacheContext() {
   return cacheRequestContext.getStore();
 }
@@ -65,6 +78,9 @@ export async function withCache(namespace, params, ttlSeconds, fetcher) {
     }
   } catch (error) {
     setCacheContext("BYPASS", key);
+    if (isFatalRedisCacheError(error)) {
+      markRedisUnavailable(error.message);
+    }
     console.error(`Redis get failed for ${key}:`, error.message);
     return fetcher();
   }
@@ -77,6 +93,9 @@ export async function withCache(namespace, params, ttlSeconds, fetcher) {
       EX: ttlSeconds
     });
   } catch (error) {
+    if (isFatalRedisCacheError(error)) {
+      markRedisUnavailable(error.message);
+    }
     console.error(`Redis set failed for ${key}:`, error.message);
   }
 

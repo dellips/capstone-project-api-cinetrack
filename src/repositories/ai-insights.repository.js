@@ -327,3 +327,48 @@ export async function listStudioScopes() {
     }
   }));
 }
+
+export async function listStudioInventory({ city = null, cinema_id = null, studio_id = null } = {}) {
+  const params = [];
+  const conditions = [];
+
+  if (city) {
+    params.push(city);
+    conditions.push(`c.city = $${params.length}`);
+  }
+
+  if (cinema_id) {
+    params.push(cinema_id);
+    conditions.push(`st.cinema_id = $${params.length}`);
+  }
+
+  if (studio_id) {
+    params.push(studio_id);
+    conditions.push(`st.studio_id = $${params.length}`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const result = await query(
+    `SELECT
+      st.studio_id,
+      st.studio_name,
+      st.total_capacity,
+      st.cinema_id,
+      c.cinema_name,
+      c.city
+    FROM studio st
+    JOIN cinema c ON st.cinema_id = c.cinema_id
+    ${whereClause}
+    ORDER BY c.city, c.cinema_name, st.total_capacity DESC, st.studio_name ASC`,
+    params
+  );
+
+  return result.rows.map((row) => ({
+    studio_id: row.studio_id,
+    studio_name: row.studio_name,
+    total_capacity: Number(row.total_capacity || 0),
+    cinema_id: row.cinema_id,
+    cinema_name: row.cinema_name,
+    city: row.city
+  }));
+}

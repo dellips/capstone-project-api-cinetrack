@@ -3,16 +3,56 @@ import { config } from "./config.js";
 
 let client = null;
 let connectingPromise = null;
+let redisDisabledReason = null;
+let redisErrorLogged = false;
+
+function disableRedis(reason) {
+  redisDisabledReason = reason || "unknown";
+
+  if (!redisErrorLogged) {
+    console.error(`Redis disabled: ${redisDisabledReason}`);
+    redisErrorLogged = true;
+  }
+
+  connectingPromise = null;
+
+  if (client) {
+    client.removeAllListeners();
+  }
+
+  client = null;
+}
+
+export function markRedisUnavailable(reason) {
+  disableRedis(reason);
+}
+
+function isFatalRedisError(error) {
+  const message = String(error?.message || "").toLowerCase();
+
+  return (
+    message.includes("enotfound")
+    || message.includes("getaddrinfo")
+    || message.includes("connection timeout")
+    || message.includes("econnrefused")
+    || message.includes("max number of clients reached")
+    || message.includes("socket closed unexpectedly")
+  );
+}
 
 function createRedisClient() {
   if (!config.cacheEnabled || !config.redisUrl) {
     return null;
   }
 
+  if (redisDisabledReason) {
+    return null;
+  }
+
   try {
     new URL(config.redisUrl);
   } catch {
-    console.error("Redis disabled: REDIS_URL is invalid");
+    disableRedis("REDIS_URL is invalid");
     return null;
   }
 
@@ -24,6 +64,11 @@ function createRedisClient() {
   });
 
   redisClient.on("error", (error) => {
+    if (isFatalRedisError(error)) {
+      disableRedis(error.message);
+      return;
+    }
+
     console.error("Redis error:", error.message);
   });
 
@@ -32,6 +77,10 @@ function createRedisClient() {
 
 export async function getRedisClient() {
   if (!config.cacheEnabled || !config.redisUrl) {
+    return null;
+  }
+
+  if (redisDisabledReason) {
     return null;
   }
 
@@ -57,6 +106,11 @@ export async function getRedisClient() {
     await connectingPromise;
     return client;
   } catch (error) {
+    if (isFatalRedisError(error)) {
+      disableRedis(error.message);
+      return null;
+    }
+
     console.error("Redis connection failed:", error.message);
     return null;
   }

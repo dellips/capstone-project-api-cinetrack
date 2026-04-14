@@ -97,6 +97,10 @@ export function buildApp() {
     logger: true
   });
 
+  if (config.isServerlessRuntime && !config.allowServerlessRedis && config.redisUrl) {
+    app.log.warn("Redis cache is disabled in serverless runtime. Set ALLOW_SERVERLESS_REDIS=true only if your Redis plan can handle concurrent serverless clients.");
+  }
+
   app.addHook("onRequest", async (request, reply) => {
     return runWithCacheContext(async () => {
       const origin = request.headers.origin;
